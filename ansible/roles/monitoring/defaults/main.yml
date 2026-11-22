@@ -1,0 +1,20 @@
+---
+# Prometheus + Alertmanager (phase 6). Runs on Server 2 (always on); staging tests it first.
+monitoring_enabled: false
+monitoring_env: prod                      # label on every alert (prod / staging)
+
+prometheus_listen: "{{ wg_mgmt_ip }}:9090"   # Grafana at home reads it over wg-mgmt
+prometheus_retention_time: 15d
+prometheus_retention_size: 1GB
+prometheus_memory_max: 300M               # hard cap: a monitoring bug must not starve the VPN
+
+# Hosts whose node_exporter is scraped (inventory names, reached over wg-mgmt).
+monitoring_node_targets: []
+# Probes: {name, prober (inventory host running blackbox), module, target, cert: normal|shortlived}
+monitoring_probes: []
+
+alertmanager_listen: 127.0.0.1:9093
+# Secrets come from the vault; empty = that receiver is off (alerts still visible in Prometheus).
+alertmanager_telegram_bot_token: "{{ vault_telegram_bot_token | default('') }}"
+alertmanager_telegram_chat_id: "{{ vault_telegram_chat_id | default(0) }}"
+alertmanager_watchdog_url: ""             # healthchecks.io ping URL (dead man's switch)

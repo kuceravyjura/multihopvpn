@@ -14,3 +14,8 @@ vault_wg_mgmt_private_keys:
   s2-lt: "TODO"
   vm-staging: "TODO"
   vm-ctl: "TODO"
+
+# Phase 6 alerts. Bot from @BotFather; chat id = your numeric Telegram id (from getUpdates after
+# you message the bot once).
+vault_telegram_bot_token: "TODO"
+vault_telegram_chat_id: 0

@@ -1,0 +1,9 @@
+---
+# Dead man's switch for the monitoring itself (phase 6). Runs on Server 1 and checks that
+# Server 2's Prometheus is alive, evaluating rules and connected to Alertmanager. If not, it
+# pushes to ntfy.sh directly from Moscow (Telegram's API is IP-blocked there).
+watcher_enabled: false
+# [{name, url}] - Prometheus base URLs, reached over wg-mgmt.
+watcher_targets: []
+watcher_failures_before_alert: 3          # one check per minute -> alert after ~3 min
+watcher_ntfy_url: "https://ntfy.sh/{{ vault_ntfy_topic | default('') }}"

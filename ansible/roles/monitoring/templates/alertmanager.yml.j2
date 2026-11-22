@@ -1,0 +1,37 @@
+# Managed by Ansible (role: monitoring). Contains the bot token: root:prometheus 0640.
+route:
+  receiver: '{{ 'telegram' if alertmanager_telegram_bot_token else 'null' }}'
+  group_by: [alertname, host, probe]
+  group_wait: 20s
+  group_interval: 2m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['alertname="Watchdog"']
+      receiver: '{{ 'watchdog' if alertmanager_watchdog_url else 'null' }}'
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
+
+receivers:
+  - name: 'null'
+{% if alertmanager_telegram_bot_token %}
+  - name: telegram
+    telegram_configs:
+      - bot_token: '{{ alertmanager_telegram_bot_token }}'
+        chat_id: {{ alertmanager_telegram_chat_id | int }}
+        parse_mode: HTML
+        send_resolved: true
+        message: |-
+{% raw %}          {{ if eq .Status "firing" }}🔴 <b>{{ .CommonLabels.alertname }}</b> [{{ .CommonLabels.env }}]
+          {{ range .Alerts }}• {{ .Annotations.summary }}
+          {{ end }}{{ else }}✅ <b>Resolved: {{ .CommonLabels.alertname }}</b> [{{ .CommonLabels.env }}]
+          {{ range .Alerts }}• was: {{ .Annotations.summary }}
+          {{ end }}{{ end }}{% endraw %}
+
+{% endif %}
+{% if alertmanager_watchdog_url %}
+  - name: watchdog
+    webhook_configs:
+      - url: '{{ alertmanager_watchdog_url }}'
+        send_resolved: false
+{% endif %}

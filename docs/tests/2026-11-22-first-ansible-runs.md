@@ -235,6 +235,33 @@ at 18:08:58:
 - `wge-shizpc_lithua` came online within seconds with its unchanged config;
 - Xray 54 MB RAM, ~0% CPU; RAM available 505 → 519 MB.
 
+## Phase 6: monitoring (ADR 0005, runbook 07)
+
+Staging first:
+- **x-ui stopped:** ServiceDown fired at 81-91 s; the Telegram message arrived ~1.5 min after the
+  stop, "resolved" after the start. The plan asks for under 2 min.
+- **Prometheus stopped:** the watcher pushed to ntfy after 3 failed checks (~4 min) and again on
+  recovery. The pushes were verified on the topic; the first ones arrived before the phone
+  subscribed, and a later test push reached the phone.
+
+Defects found:
+12. **Lost restarts:** a failed first run dropped pending restarts, so the exporters ran on stale
+    settings. They listened on all addresses, exported every systemd unit, and used the package's
+    default blackbox modules. Fixed for good with `force_handlers = True`.
+13. **YAML null:** `receiver: null` without quotes is YAML null, so Alertmanager rejected the config.
+14. **No external dead man's switch:** healthchecks.io's sign-up email never arrived, and Server 1
+    cannot reach Telegram (IP block: plain TCP fails, so zapret cannot help). The dead man's switch
+    is therefore a watcher on Server 1 that pushes to ntfy.sh.
+15. **False HostDown at install:** on Server 2 the package's default config scraped
+    `localhost:9100` before ours was loaded. The alert cleared after 5 min; the rule now requires a
+    `host` label.
+
+Production (Server 2, then Server 1), failed=0 on both:
+- all 12 targets up; 8 probes green in both directions;
+- certificates: domain 31.7 days, Server 1 IP certificate 3.6 days (a 6-day certificate, normal);
+- memory right after start: Prometheus 16, Alertmanager 13, blackbox 2 MB;
+- the watcher on Server 1 reports OK; no user service was touched.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |

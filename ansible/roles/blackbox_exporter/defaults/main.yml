@@ -1,0 +1,5 @@
+---
+# Probes run from here (role: monitoring decides what to probe). Listens on wg-mgmt only.
+blackbox_enabled: false
+blackbox_port: 9115
+blackbox_listen: "{{ wg_mgmt_ip }}:{{ blackbox_port }}"

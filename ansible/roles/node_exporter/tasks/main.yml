@@ -5,12 +5,23 @@
     state: present
     install_recommends: false
 
+- name: Build the unit filter for the systemd collector
+  ansible.builtin.set_fact:
+    # e.g. (x-ui|AdGuardHome|homelab-backup\.timer)(\.service)? - no spaces, so no quoting
+    # (systemd splits $ARGS on whitespace and does not strip quotes).
+    _node_exporter_units_regex: "({{ node_exporter_systemd_units | map('regex_escape') | join('|') }})(\\.service)?"
+
 - name: Listen on the management address only
+  vars:
+    _node_exporter_args:
+      - --web.listen-address={{ node_exporter_listen }}
+      - --collector.systemd
+      - --collector.systemd.unit-include={{ _node_exporter_units_regex }}
   ansible.builtin.copy:
     dest: /etc/default/prometheus-node-exporter
     content: |
       # Managed by Ansible (role: node_exporter)
-      ARGS="--web.listen-address={{ node_exporter_listen }}"
+      ARGS="{{ _node_exporter_args | join(' ') }}"
     owner: root
     group: root
     mode: "0644"

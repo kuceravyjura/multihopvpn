@@ -1,0 +1,125 @@
+---
+- name: Install Prometheus and Alertmanager
+  ansible.builtin.apt:
+    name:
+      - prometheus
+      - prometheus-alertmanager
+    state: present
+    install_recommends: false
+
+- name: Create rules directory
+  ansible.builtin.file:
+    path: /etc/prometheus/rules
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Alert rules
+  ansible.builtin.copy:
+    src: homelab-rules.yml
+    dest: /etc/prometheus/rules/homelab.yml
+    owner: root
+    group: root
+    mode: "0644"
+    validate: promtool check rules %s
+  notify: Reload prometheus
+
+- name: Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: root
+    group: prometheus
+    mode: "0640"
+    validate: promtool check config --syntax-only %s
+  notify: Reload prometheus
+
+- name: Prometheus listens on wg-mgmt only, with bounded history
+  vars:
+    _prometheus_args:
+      - --web.listen-address={{ prometheus_listen }}
+      - --storage.tsdb.retention.time={{ prometheus_retention_time }}
+      - --storage.tsdb.retention.size={{ prometheus_retention_size }}
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus
+    content: |
+      # Managed by Ansible (role: monitoring)
+      ARGS="{{ _prometheus_args | join(' ') }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart prometheus
+
+- name: Alertmanager config
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: /etc/prometheus/alertmanager.yml
+    owner: root
+    group: prometheus
+    mode: "0640"
+    validate: amtool check-config %s
+  notify: Restart alertmanager
+  no_log: "{{ alertmanager_telegram_bot_token | length > 0 }}"   # hide the diff/errors once it holds the bot token
+
+- name: Alertmanager on localhost only, gossip off
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus-alertmanager
+    content: |
+      # Managed by Ansible (role: monitoring). --cluster.listen-address= turns off the gossip port (9094).
+      ARGS="--web.listen-address={{ alertmanager_listen }} --cluster.listen-address="
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart alertmanager
+
+- name: Create systemd drop-in directories
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [prometheus, prometheus-alertmanager]
+
+- name: Prometheus starts after wg-mgmt and has a memory cap
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/prometheus.service.d/10-homelab.conf
+    content: |
+      # Managed by Ansible (role: monitoring)
+      [Unit]
+      After=wg-quick@{{ wg_mgmt_interface }}.service
+      Wants=wg-quick@{{ wg_mgmt_interface }}.service
+
+      [Service]
+      Restart=always
+      RestartSec=5
+      MemoryMax={{ prometheus_memory_max }}
+      Nice=5
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart prometheus
+
+- name: Alertmanager memory cap
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/prometheus-alertmanager.service.d/10-homelab.conf
+    content: |
+      # Managed by Ansible (role: monitoring)
+      [Service]
+      Restart=always
+      RestartSec=5
+      MemoryMax=64M
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart alertmanager
+
+- name: Enable Prometheus and Alertmanager
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: [prometheus, prometheus-alertmanager]
+  ignore_errors: "{{ ansible_check_mode }}"

@@ -1,0 +1,35 @@
+# Managed by Ansible (role: blackbox_exporter)
+modules:
+  # A public TCP port answers (vless, DoT, DoH, decoy site).
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: ip4
+  # A DNS-over-HTTPS query (GET, wire format) gets a 200 with a valid certificate.
+  doh:
+    prober: http
+    timeout: 8s
+    http:
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200]
+      headers:
+        Accept: application/dns-message
+  # Same, for staging's self-signed stand-in certificate.
+  doh_insecure:
+    prober: http
+    timeout: 8s
+    http:
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200]
+      headers:
+        Accept: application/dns-message
+      tls_config:
+        insecure_skip_verify: true
+  # An HTTPS service answers at all (panel root returns 404 by design); used for certificate expiry.
+  https_reachable:
+    prober: http
+    timeout: 8s
+    http:
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200, 302, 404]

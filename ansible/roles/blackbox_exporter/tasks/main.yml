@@ -1,0 +1,60 @@
+---
+- name: Install blackbox exporter
+  ansible.builtin.apt:
+    name: prometheus-blackbox-exporter
+    state: present
+    install_recommends: false
+
+- name: Probe modules
+  ansible.builtin.template:
+    src: blackbox.yml.j2
+    dest: /etc/prometheus/blackbox.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart blackbox exporter
+
+- name: Listen on the management address only
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus-blackbox-exporter
+    content: |
+      # Managed by Ansible (role: blackbox_exporter)
+      ARGS="--config.file=/etc/prometheus/blackbox.yml --web.listen-address={{ blackbox_listen }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart blackbox exporter
+
+- name: Create systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/prometheus-blackbox-exporter.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Start after wg-mgmt so the listen address exists
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/prometheus-blackbox-exporter.service.d/10-homelab.conf
+    content: |
+      # Managed by Ansible (role: blackbox_exporter)
+      [Unit]
+      After=wg-quick@{{ wg_mgmt_interface }}.service
+      Wants=wg-quick@{{ wg_mgmt_interface }}.service
+
+      [Service]
+      Restart=always
+      RestartSec=5
+      MemoryMax=64M
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart blackbox exporter
+
+- name: Enable blackbox exporter
+  ansible.builtin.systemd_service:
+    name: prometheus-blackbox-exporter
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

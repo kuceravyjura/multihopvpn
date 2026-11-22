@@ -60,3 +60,32 @@ adguard_enabled: true
 # ADR 0004 (deferred): per-user DNS identity would remove Server 1's DNS fallback.
 # Reliability first: everyone stays srv1-moscow. The role removes the route while false.
 dns_identity_enabled: false
+
+# Phase 6: Server 2 is the monitoring server (always on). Grafana at home reads it over wg-mgmt.
+blackbox_enabled: true
+monitoring_enabled: true
+monitoring_env: prod
+monitoring_node_targets: [s1-msk, s2-lt]
+# Server 1's public services checked from Lithuania, Server 2's from Moscow (both directions of
+# the user path). Addresses and the domain come from the vault.
+monitoring_probes:
+  - {name: s1-vless-8443, prober: s2-lt, module: tcp_connect, target: "{{ vault_s1_public_ip }}:8443"}
+  - {name: s1-vless-11139, prober: s2-lt, module: tcp_connect, target: "{{ vault_s1_public_ip }}:11139"}
+  - name: s1-panel-cert
+    prober: s2-lt
+    module: https_reachable
+    target: "https://{{ vault_s1_public_ip }}:6902/"
+    cert: shortlived
+  - {name: s2-vless-8443, prober: s1-msk, module: tcp_connect, target: "{{ vault_s2_public_ip }}:8443"}
+  - {name: s2-relay-1111, prober: s1-msk, module: tcp_connect, target: "{{ vault_s2_public_ip }}:1111"}
+  - {name: s2-dot-853, prober: s1-msk, module: tcp_connect, target: "{{ vault_s2_public_ip }}:853"}
+  - name: s2-doh
+    prober: s1-msk
+    module: doh
+    target: "https://{{ vault_s2_domain }}:3452/dns-query?dns=AAABAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
+    cert: normal
+  - name: s2-decoy-site
+    prober: s1-msk
+    module: https_reachable
+    target: "https://{{ vault_s2_domain }}/"
+    cert: normal

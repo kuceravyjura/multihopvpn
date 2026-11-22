@@ -42,3 +42,10 @@ firewall_mgmt_tcp:
 # Server 2 VPN profile -> this panel on 6902. Still needs the secret path + login.
 firewall_extra_rules:
   - 'ip saddr {{ vault_s2_public_ip }} tcp dport 6902 accept'
+
+# Phase 6: probes Server 2 from Moscow (scraped by Server 2's Prometheus over wg-mgmt), and
+# watches Server 2's monitoring itself: if it is gone, push to ntfy.sh (Telegram is IP-blocked here).
+blackbox_enabled: true
+watcher_enabled: true
+watcher_targets:
+  - {name: server2-prometheus, url: "http://10.99.0.12:9090"}

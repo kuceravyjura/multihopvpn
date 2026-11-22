@@ -28,6 +28,15 @@
       tags: [backup]
     - role: dns_identity        # installs or removes itself (dns_identity_enabled)
       tags: [dns_identity]
+    - role: blackbox_exporter
+      tags: [blackbox, monitoring]
+      when: blackbox_enabled | default(false)
+    - role: monitoring
+      tags: [monitoring]
+      when: monitoring_enabled | default(false)
+    - role: watcher
+      tags: [watcher, monitoring]
+      when: watcher_enabled | default(false)
 
 - name: Home control node
   hosts: home

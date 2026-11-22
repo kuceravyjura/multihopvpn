@@ -28,3 +28,22 @@ adguard_selfsigned_if_missing: true
 
 # ADR 0004: 10.53.0.N is local here, so AdGuard sees each user's DNS address as the client.
 dns_identity_enabled: true
+
+# Phase 6 rehearsal: staging monitors itself like Server 2 will monitor both servers.
+blackbox_enabled: true
+monitoring_enabled: true
+monitoring_env: staging
+monitoring_node_targets: [vm-staging]
+monitoring_probes:
+  - {name: staging-vless-8443, prober: vm-staging, module: tcp_connect, target: "192.168.0.70:8443"}
+  - {name: staging-relay-1111, prober: vm-staging, module: tcp_connect, target: "192.168.0.70:1111"}
+  - {name: staging-dot-853, prober: vm-staging, module: tcp_connect, target: "192.168.0.70:853"}
+  # DoH query for example.com (wire format, base64url) through staging's AdGuard.
+  - name: staging-doh
+    prober: vm-staging
+    module: doh_insecure
+    target: "https://192.168.0.70:3452/dns-query?dns=AAABAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
+# Staging is often off or under test: no Telegram, no watcher. For a delivery test, run with
+# -e alertmanager_telegram_bot_token={{ vault_telegram_bot_token }} (watcher: see runbook 07).
+alertmanager_telegram_bot_token: ""
+watcher_enabled: false

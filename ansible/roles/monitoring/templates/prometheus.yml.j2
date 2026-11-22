@@ -1,0 +1,51 @@
+# Managed by Ansible (role: monitoring). Holds real addresses: generated from the vault, never in git.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    env: {{ monitoring_env }}
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['{{ alertmanager_listen }}']
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['{{ prometheus_listen }}']
+
+  - job_name: alertmanager
+    static_configs:
+      - targets: ['{{ alertmanager_listen }}']
+
+  - job_name: node
+    static_configs:
+{% for h in monitoring_node_targets %}
+      - targets: ['{{ hostvars[h].wg_mgmt_ip }}:9100']
+        labels:
+          host: {{ h }}
+{% endfor %}
+
+{% for p in monitoring_probes %}
+  - job_name: probe_{{ p.name }}
+    metrics_path: /probe
+    params:
+      module: [{{ p.module }}]
+    static_configs:
+      - targets: ['{{ p.target }}']
+        labels:
+          probe: {{ p.name }}
+          prober: {{ p.prober }}
+          cert: {{ p.cert | default('none') }}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: instance
+        replacement: {{ p.name }}
+      - target_label: __address__
+        replacement: {{ hostvars[p.prober].wg_mgmt_ip }}:{{ hostvars[p.prober].blackbox_port | default(9115) }}
+{% endfor %}

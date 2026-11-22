@@ -8,7 +8,8 @@
 table inet homelab
 delete table inet homelab
 
-{% set mgmt_tcp = ([ssh_port, node_exporter_port] + firewall_mgmt_tcp) | map('string') | unique | list %}
+{% set monitoring_tcp = ([9115] if blackbox_enabled | default(false) else []) + ([9090] if monitoring_enabled | default(false) else []) %}
+{% set mgmt_tcp = ([ssh_port, node_exporter_port] + monitoring_tcp + firewall_mgmt_tcp) | map('string') | unique | list %}
 {% set pub_udp = (firewall_public_udp + ([wg_mgmt_port] if wg_mgmt_endpoint is defined else [])) | map('string') | unique | list %}
 table inet homelab {
     chain input {

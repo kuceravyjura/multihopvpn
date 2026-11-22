@@ -2,3 +2,17 @@
 node_exporter_port: 9100
 # Bound to the management address, so metrics are never public even without a firewall.
 node_exporter_listen: "{{ wg_mgmt_ip }}:{{ node_exporter_port }}"
+
+# systemd collector: only these units are exported (node_systemd_unit_state), so the
+# "service down" alert sees exactly what matters on each host.
+node_exporter_systemd_units:
+  - x-ui
+  - AdGuardHome
+  - nginx
+  - zapret
+  - wg-quick@wg-mgmt
+  - prometheus
+  - prometheus-alertmanager
+  - prometheus-blackbox-exporter
+  - homelab-backup.timer
+  - homelab-watcher.timer
