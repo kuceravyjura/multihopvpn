@@ -70,6 +70,13 @@ homelab-kit drill-done   # record a completed monthly restore drill (runbook 09)
 
 ## If Google throttling gets annoying
 
+Already built in: restic waits up to 5 min for rclone (`-o rclone.timeout=5m`), rclone sends at most
+4 requests/s, and the repository is created only once (a marker file in `~/.config/homelab-kit/`).
+On 2026-11-22 a throttled check made an early version try to create the repository again; that
+attempt failed harmlessly, and the marker prevents it now. A run that fails is simply retried at the
+next trigger; RecoveryKitStale only fires after 3 days without an upload.
+
+
 rclone uses a public API key shared by all rclone users. A personal Google Cloud OAuth client ID
 (free) removes most `RATE_LIMIT_EXCEEDED` retries. Create it in Google Cloud Console (APIs and
 Services: enable the Drive API; Credentials: OAuth client, type Desktop), then run

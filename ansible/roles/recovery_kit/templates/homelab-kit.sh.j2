@@ -7,6 +7,9 @@ set -euo pipefail
 CONF="$HOME/.config/homelab-kit"; mkdir -p "$CONF"; chmod 700 "$CONF"
 export RESTIC_REPOSITORY="rclone:{{ kit_rclone_remote }}:{{ kit_drive_folder }}"
 export RESTIC_PASSWORD_FILE="$CONF/restic-password"
+# Google throttles: give rclone time and keep its request rate low.
+alias restic='restic -o rclone.timeout=5m -o "rclone.args=serve restic --stdio --b2-hard-delete --tpslimit 4 --tpslimit-burst 8"'
+shopt -s expand_aliases
 REPO={{ kit_repo_dir | quote }}
 
 if [ ! -s "$RESTIC_PASSWORD_FILE" ]; then
@@ -27,7 +30,14 @@ case "${1:-backup}" in
   *) echo "usage: homelab-kit [backup|full|snapshots|restore <dir>|verify|drill-done]"; exit 1 ;;
 esac
 
-restic cat config >/dev/null 2>&1 || restic init
+# Create the repository only once. A failed request (Google throttling) must never be read as
+# "no repository": after the first success a marker file says it exists.
+if [ ! -f "$CONF/repo-initialized" ]; then
+  exists=0
+  for i in 1 2 3; do restic cat config >/dev/null 2>&1 && { exists=1; break; }; sleep $((i * 20)); done
+  [ "$exists" = 1 ] || restic init
+  touch "$CONF/repo-initialized"
+fi
 
 report() {  # name value: write a metric on Server 2 (node_exporter text-file collector)
   printf '# TYPE %s gauge
