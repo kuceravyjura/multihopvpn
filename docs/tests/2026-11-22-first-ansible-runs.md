@@ -122,6 +122,45 @@ Server 2 first, then Server 1, each with the dead-man switch armed:
 Break-glass if the tunnel ever fails: the provider's web console, or wait for an armed dead-man
 switch to unload the firewall (`vps1-pub` / `vps2-pub` SSH aliases).
 
+## Phase 3: xui, adguard and backup roles; rebuild from a fresh VM
+
+Roles: `xui` (3x-ui 3.11.0), `adguard` (v0.107.71): pinned releases, sha256 from GitHub's release
+API, state restored from a backup only when the host has none (ADR 0003). `backup`: nightly
+`homelab-backup.timer`. Ansible now logs in as `ops`; root login off.
+
+**Test 1, restore onto the existing staging VM.** Fresh read-only backup of Server 2, extracted to
+`backups/restore/s2-lt/`. Found before restoring: the panel copy held an active node link to Server 1
+(with its API token, inbound sync on). Server 1's firewall would refuse staging, but the role now
+switches node links off after any restore. Telegram bot was already off in the copy.
+
+**Test 2, the phase 3 acceptance test.** Staging reset to its checkpoint (taken two minutes before
+Ansible's first change: no `ops`, no WireGuard, no firewall), then:
+
+| Run | User | Result |
+|---|---|---|
+| 1 (bootstrap) | root, `-e ssh_permit_root_login=prohibit-password` | 4.5 min, changed=59, failed=0 |
+| 2 | ops | changed=2: `PermitRootLogin no` and its sshd reload |
+| 3 | ops | changed=0 |
+
+Verified on the rebuilt VM (not from Ansible's report):
+
+| Check | Result |
+|---|---|
+| Root SSH | `Permission denied (publickey)` |
+| 3x-ui | 3.11.0 active; Server 2's inbounds listening (1111, 8443), panel 6903, subscriptions 2096; node links 0 enabled |
+| AdGuard | v0.107.71 active on 53, 853 (DoT), 3452 (DoH + DoQ), UI 3000 |
+| DoH lookup via staging | `example.com` answered; `doubleclick.net` → 0.0.0.0 (blocked) |
+| Panel / AdGuard UI | over wg-mgmt: 404 at `/` (secret base path, as on Server 2) / 302 to login; from the LAN: filtered |
+| Backup | 48 KB archive, `root:ops 0640`, keys inside still 0600; timer scheduled; runbook 04 extract command tested |
+| Memory | 204 MB used of 392 MB |
+
+Defects found and fixed on staging:
+
+6. `cp -a --parents` failed on `/opt/AdGuardHome` inside the backup script. Replaced with a tar pipe.
+7. `${#REL[@]}` in the script template opened a Jinja comment (`{#`). Rewritten without it.
+8. Server 2 dry run: udisks2 and upower were disabled but running again (D-Bus activation), so the
+   common role "changed" them on every run. They are now masked.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |

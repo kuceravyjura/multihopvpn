@@ -1,9 +1,11 @@
 ---
 # Shared settings. Secrets go in vault.yml next to this file (encrypted), never here.
 
-# Bootstrap connects as root. After the hardening role has run and you have
-# logged in as admin_user, change this to "{{ admin_user }}".
-ansible_user: root
+# Ansible logs in as the admin user and uses sudo. Root SSH login is off (phase 3).
+# A brand-new host (only root exists): first run with -e ansible_user=root
+# -e ssh_permit_root_login=prohibit-password, then plain runs work.
+ansible_user: "{{ admin_user }}"
+ssh_permit_root_login: "no"
 
 admin_user: ops
 # OpenSSH format (ssh-ed25519 AAAA...). Drop the comment part if it holds your email.

@@ -179,5 +179,5 @@
     msg: >-
       Dead-man switch ARMED on {{ inventory_hostname }}: the firewall unlocks in
       {{ firewall_deadman_minutes }} minutes. When everything is verified, disarm over the tunnel:
-      ssh root@{{ wg_mgmt_ip }} homelab-fw-disarm
+      ssh {{ admin_user }}@{{ wg_mgmt_ip }} sudo homelab-fw-disarm
   when: firewall_deadman_minutes | int > 0 and _firewall_reload | bool

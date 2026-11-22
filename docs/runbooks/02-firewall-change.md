@@ -52,8 +52,8 @@ later (panel sync, VPN users, DNS) need a longer net. After **every** rule chang
 When everything is verified, **disarm it over the tunnel**. That also proves the tunnel works:
 
 ```bash
-ssh root@10.99.0.12 homelab-fw-disarm     # Server 2
-ssh root@10.99.0.11 homelab-fw-disarm     # Server 1
+ssh ops@10.99.0.12 sudo homelab-fw-disarm     # Server 2
+ssh ops@10.99.0.11 sudo homelab-fw-disarm     # Server 1
 ```
 
 Tested on vm-staging 2026-11-22: fired after 2 min (test fuse) and unlocked; Ansible recovery and

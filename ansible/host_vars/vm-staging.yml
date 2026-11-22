@@ -12,6 +12,16 @@ common_ip_forward: false
 
 firewall_enabled: true
 firewall_ssh_public: true
-firewall_public_tcp: [443]
-firewall_public_udp: []
-firewall_mgmt_tcp: [2053]
+# Restored copy of Server 2 (phase 3 proof): same public ports, admin UIs over wg-mgmt.
+firewall_public_tcp: [80, 443, 853, 1111, 3452, 8443]
+firewall_public_udp: [3452]
+firewall_mgmt_tcp: [2053, 2096, 3000, 6903]
+
+# Restore Server 2's state from a backup pulled home (backups/ is git-ignored).
+# Extract the latest archive into backups/restore/s2-lt/ first (runbook 04).
+adguard_enabled: true
+xui_restore_db: "{{ playbook_dir }}/../backups/restore/s2-lt/x-ui.db"
+adguard_restore_config: "{{ playbook_dir }}/../backups/restore/s2-lt/AdGuardHome.yaml"
+# Server 2's certificates are not copied to staging; stand-ins keep the services starting.
+xui_selfsigned_if_missing: true
+adguard_selfsigned_if_missing: true

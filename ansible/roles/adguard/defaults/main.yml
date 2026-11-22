@@ -1,0 +1,17 @@
+---
+# Pinned AdGuard Home release. The digest is the one GitHub's release API reports.
+adguard_version: "v0.107.71"
+adguard_url: "https://github.com/AdguardTeam/AdGuardHome/releases/download/{{ adguard_version }}/AdGuardHome_linux_amd64.tar.gz"
+adguard_sha256: "b4b01a5da971a67bc2458ba0fc075de1b356cf6a37843e900177f329777cc5db"
+adguard_dir: /opt/AdGuardHome
+
+# A different version already installed is left alone (and reported) unless this is true.
+# AdGuard can also update itself from its UI; this role does not fight that.
+adguard_upgrade: false
+
+# Path on the control node to an AdGuardHome.yaml to restore, only when the host has none.
+# It holds the admin password hash and client names, so it comes from backups/, never git.
+adguard_restore_config: ""
+
+# Staging only: self-signed pair at the TLS paths in the restored config, if they are missing.
+adguard_selfsigned_if_missing: false

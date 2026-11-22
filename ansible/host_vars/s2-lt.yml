@@ -53,3 +53,5 @@ firewall_extra_rules:
   # The two 3x-ui panels are linked as nodes: Server 1's panel polls this panel on 6903
   # over the internet. Allow exactly that source, so the node sync keeps working.
   - 'ip saddr {{ vault_s1_public_ip }} tcp dport 6903 accept'
+
+adguard_enabled: true

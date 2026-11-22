@@ -1,0 +1,22 @@
+---
+backup_dir: /var/backups/homelab
+backup_keep_days: 7
+# Nightly at 03:40 server time, clear of the certificate jobs (04:29 / 04:30).
+backup_on_calendar: "*-*-* 03:40:00"
+backup_randomized_delay: 10min
+# The archive is root-owned and readable by this group, so the admin user can pull it
+# over the tunnel without root login.
+backup_reader_group: "{{ admin_user }}"
+
+# Paths copied when they exist. The 3x-ui database is handled separately (sqlite online backup).
+backup_paths:
+  - /opt/AdGuardHome/AdGuardHome.yaml
+  - /etc/letsencrypt
+  - /root/.acme.sh
+  - /etc/nginx
+  - /etc/wireguard
+  - /etc/default/x-ui
+  - /etc/systemd/system/x-ui.service
+  - /etc/systemd/system/AdGuardHome.service
+  - /etc/nftables.conf
+  - /etc/nftables.d

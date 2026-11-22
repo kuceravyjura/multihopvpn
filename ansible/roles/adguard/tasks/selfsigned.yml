@@ -1,0 +1,33 @@
+---
+# Staging only. Reads the TLS paths from the restored config.
+- name: Read AdGuard config
+  ansible.builtin.slurp:
+    src: "{{ adguard_dir }}/AdGuardHome.yaml"
+  register: _adguard_yaml
+
+- name: Map TLS paths
+  ansible.builtin.set_fact:
+    _adguard_tls: "{{ (_adguard_yaml.content | b64decode | from_yaml).tls | default({}) }}"
+
+- name: Create a self-signed pair at the configured paths
+  when:
+    - _adguard_tls.enabled | default(false)
+    - _adguard_tls.certificate_path | default('') | length > 0
+    - _adguard_tls.private_key_path | default('') | length > 0
+  block:
+    - name: Create certificate folders
+      ansible.builtin.file:
+        path: "{{ item | dirname }}"
+        state: directory
+        mode: "0700"
+      loop:
+        - "{{ _adguard_tls.certificate_path }}"
+        - "{{ _adguard_tls.private_key_path }}"
+
+    - name: Generate the pair if missing
+      ansible.builtin.command:
+        argv: [openssl, req, -x509, -newkey, "rsa:2048", -nodes, -days, "365",
+               -subj, "/CN=staging", -keyout, "{{ _adguard_tls.private_key_path }}",
+               -out, "{{ _adguard_tls.certificate_path }}"]
+        creates: "{{ _adguard_tls.certificate_path }}"
+      notify: Restart AdGuard Home

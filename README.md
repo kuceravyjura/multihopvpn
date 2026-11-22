@@ -61,8 +61,11 @@ The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
   ([test log](docs/tests/2026-11-22-first-ansible-runs.md)). **wg-mgmt works end to end**: home
   (WSL as `vm-ctl`) reaches both servers and staging over 10.99.0.x. Left: a dedicated vm-ctl VM (optional).
 - [ ] Phase 3: everything in Ansible. Edge roles applied to **both servers** on 2026-11-22
-  (idempotent, all VPN services verified). Left: firewall on (= SSH and panels mgmt-only),
-  xui/adguard/backup roles.
+  (idempotent, all VPN services verified); firewall on, SSH and panels over wg-mgmt only.
+  `xui`, `adguard` and `backup` roles written; **acceptance test passed**: a fresh staging VM became
+  a working copy of Server 2 in one run (4.5 min), second run changed=0
+  ([ADR 0003](docs/adr/0003-panel-state-and-admin-access.md), [runbook 04](docs/runbooks/04-backup-and-restore.md)).
+  Left: apply root-login-off and nightly backups to the servers.
 - [ ] Phase 4: AdGuard for Server 1 users
 - [ ] Phase 5: retire wg-easy
 - [ ] Phase 6: monitoring and alerts

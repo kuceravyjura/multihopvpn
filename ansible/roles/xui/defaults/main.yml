@@ -1,0 +1,20 @@
+---
+# Pinned 3x-ui release. The digest is the one GitHub's release API reports for the asset.
+xui_version: "3.11.0"
+xui_url: "https://github.com/MHSanaei/3x-ui/releases/download/v{{ xui_version }}/x-ui-linux-amd64.tar.gz"
+xui_sha256: "0ddfa4702f595442e2962acd81addc768fdacaa4ff2672c971a0463dae744916"
+
+# A different version already installed is left alone (and reported) unless this is true.
+xui_upgrade: false
+
+# Path on the control node to an x-ui.db to restore. Used only when the host has no database
+# yet, so it never overwrites a live panel. Inbounds, clients and keys live in this file;
+# they are managed in the panel, not in Ansible.
+xui_restore_db: ""
+# After a restore, switch off the panel's links to other nodes (they hold API tokens for the
+# real servers). Keep true for anything that is not the real host being rebuilt.
+xui_restore_disable_nodes: true
+
+# Staging only: if the restored panel points at TLS files that don't exist here,
+# create a self-signed pair at those paths so the panel starts.
+xui_selfsigned_if_missing: false

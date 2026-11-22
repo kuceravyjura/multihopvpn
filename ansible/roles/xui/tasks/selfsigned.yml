@@ -1,0 +1,40 @@
+---
+# Staging only. The panel's TLS paths come from its own settings table.
+- name: Read panel TLS paths
+  ansible.builtin.command:
+    argv:
+      - sqlite3
+      - /etc/x-ui/x-ui.db
+      - "select key || '=' || value from settings where key in ('webCertFile', 'webKeyFile');"
+  register: _xui_tls
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Map panel TLS paths
+  vars:
+    _lines: "{{ _xui_tls.stdout_lines }}"
+  ansible.builtin.set_fact:
+    _xui_cert: >-
+      {{ _lines | select('match', '^webCertFile=.') | map('regex_replace', '^webCertFile=', '')
+         | first | default('') }}
+    _xui_key: >-
+      {{ _lines | select('match', '^webKeyFile=.') | map('regex_replace', '^webKeyFile=', '')
+         | first | default('') }}
+
+- name: Create a self-signed pair at the panel's paths
+  when: _xui_cert | length > 0 and _xui_key | length > 0
+  block:
+    - name: Create certificate folders
+      ansible.builtin.file:
+        path: "{{ item | dirname }}"
+        state: directory
+        mode: "0700"
+      loop: ["{{ _xui_cert }}", "{{ _xui_key }}"]
+
+    - name: Generate the pair if missing
+      ansible.builtin.command:
+        argv: [openssl, req, -x509, -newkey, "rsa:2048", -nodes, -days, "365",
+               -subj, "/CN=staging", -keyout, "{{ _xui_key }}", -out, "{{ _xui_cert }}"]
+        creates: "{{ _xui_cert }}"
+      notify: Restart x-ui

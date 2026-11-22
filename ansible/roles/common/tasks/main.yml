@@ -83,11 +83,13 @@
   ansible.builtin.service_facts:
   when: common_disable_services | length > 0
 
-- name: Stop and disable services a VPS doesn't need
+# Masked, not just disabled: udisks2 and upower are D-Bus activated and came back on demand.
+- name: Stop and mask services a VPS doesn't need
   ansible.builtin.systemd_service:
     name: "{{ item }}"
     state: stopped
     enabled: false
+    masked: true
   loop: "{{ common_disable_services }}"
   when: (item ~ '.service') in ansible_facts.services
 

@@ -9,18 +9,19 @@ The script uses the Windows OpenSSH client (`ssh`, `scp`) and the host aliases i
 `C:\Users\<you>\.ssh\config` (already set up on this PC):
 
 ```
-Host vps1        # Server 1 · Moscow
-    HostName <server 1 IP>
-    User root
+Host vps1        # Server 1 · Moscow (over the wg-mgmt tunnel since stage B)
+    HostName 10.99.0.11
+    User ops
     IdentityFile ~/.ssh/id_ed25519
 
 Host vps2        # Server 2 · Lithuania
-    HostName <server 2 IP>
-    User root
+    HostName 10.99.0.12
+    User ops
     IdentityFile ~/.ssh/id_ed25519
 ```
 
-Test: `ssh vps1 hostname` and `ssh vps2 hostname`. The real IPs stay in this local file, never in the repo.
+Test: `ssh vps1 hostname` and `ssh vps2 hostname`. Root login is off since phase 3; `ops` has
+passwordless sudo. Public-IP aliases for break-glass stay in this local file, never in the repo.
 
 ## 2. Check the break-glass path
 

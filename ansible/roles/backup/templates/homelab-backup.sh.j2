@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Managed by Ansible (role: backup). Nightly snapshot of the state that can't be rebuilt
+# from the repo: panel database, AdGuard config, certificates, web and tunnel configs.
+# Output: {{ backup_dir }}/<host>-<date>.tar.gz (root:{{ backup_reader_group }}, 0640).
+set -euo pipefail
+umask 077
+
+DIR={{ backup_dir }}
+STAMP=$(date +%Y%m%d-%H%M%S)
+NAME="$(hostname -s)-${STAMP}"
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+mkdir -p "$WORK/$NAME"
+
+# 3x-ui: an online backup is consistent even while the panel writes (WAL mode).
+if [ -f /etc/x-ui/x-ui.db ]; then
+  sqlite3 /etc/x-ui/x-ui.db ".backup '$WORK/$NAME/x-ui.db'"
+  sqlite3 "$WORK/$NAME/x-ui.db" 'pragma integrity_check;' | grep -qx ok
+fi
+
+# wg-easy keeps its peers in a Docker volume or bind mount.
+if command -v docker >/dev/null 2>&1; then
+  for c in $(docker ps -a --format '{% raw %}{{.Names}} {{.Image}}{% endraw %}' | awk '/wg-easy/ {print $1}'); do
+    for src in $(docker inspect "$c" --format '{% raw %}{{range .Mounts}}{{.Source}} {{end}}{% endraw %}'); do
+      if [ -e "$src" ]; then mkdir -p "$WORK/$NAME/wg-easy-$c"; cp -a "$src" "$WORK/$NAME/wg-easy-$c/"; fi
+    done
+  done
+fi
+
+# Copy the listed paths that exist, keeping their full path and permissions.
+REL=()
+for p in {% for p in backup_paths %}{{ p | quote }} {% endfor %}; do
+  if [ -e "$p" ]; then REL+=("${p#/}"); fi
+done
+if [ -n "${REL[*]-}" ]; then
+  tar -C / -cf - "${REL[@]}" | tar -C "$WORK/$NAME" -xf -
+fi
+
+tar czf "$DIR/$NAME.tar.gz.part" -C "$WORK" "$NAME"
+mv "$DIR/$NAME.tar.gz.part" "$DIR/$NAME.tar.gz"
+chgrp {{ backup_reader_group }} "$DIR/$NAME.tar.gz"
+chmod 0640 "$DIR/$NAME.tar.gz"
+
+find "$DIR" -maxdepth 1 -name '*.tar.gz' -mtime +{{ backup_keep_days }} -delete
+echo "$DIR/$NAME.tar.gz $(du -h "$DIR/$NAME.tar.gz" | cut -f1)"

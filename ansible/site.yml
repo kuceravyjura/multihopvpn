@@ -1,8 +1,9 @@
 ---
 # Usage (always one host at a time, staging first):
-#   ansible-playbook site.yml -l vm-staging --ask-vault-pass
-#   ansible-playbook site.yml -l s2-lt --check --diff --ask-vault-pass
-#   ansible-playbook site.yml -l s2-lt --ask-vault-pass
+#   ansible-playbook site.yml -l vm-staging
+#   ansible-playbook site.yml -l s2-lt --check --diff
+#   ansible-playbook site.yml -l s2-lt
+# (vault password from ANSIBLE_VAULT_PASSWORD_FILE, or add --ask-vault-pass)
 
 - name: Edge servers (VPS and staging copy)
   hosts: edge
@@ -18,6 +19,13 @@
       tags: [firewall]
     - role: node_exporter
       tags: [node_exporter]
+    - role: xui
+      tags: [xui]
+    - role: adguard
+      tags: [adguard]
+      when: adguard_enabled | default(false)
+    - role: backup
+      tags: [backup]
 
 - name: Home control node
   hosts: home

@@ -1,0 +1,68 @@
+---
+- name: Install sqlite3
+  ansible.builtin.apt:
+    name: sqlite3
+    state: present
+    install_recommends: false
+
+- name: Create backup folder
+  ansible.builtin.file:
+    path: "{{ backup_dir }}"
+    state: directory
+    owner: root
+    group: "{{ backup_reader_group }}"
+    mode: "0750"
+
+- name: Install backup script
+  ansible.builtin.template:
+    src: homelab-backup.sh.j2
+    dest: /usr/local/sbin/homelab-backup
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install backup service and timer
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.name }}"
+    content: "{{ item.content }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - name: homelab-backup.service
+      content: |
+        # Managed by Ansible (role: backup)
+        [Unit]
+        Description=Homelab state backup
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/sbin/homelab-backup
+        Nice=10
+        IOSchedulingClass=idle
+    - name: homelab-backup.timer
+      content: |
+        # Managed by Ansible (role: backup)
+        [Unit]
+        Description=Nightly homelab state backup
+
+        [Timer]
+        OnCalendar={{ backup_on_calendar }}
+        RandomizedDelaySec={{ backup_randomized_delay }}
+        Persistent=true
+
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Reload systemd
+
+- name: Apply systemd changes before enabling the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable backup timer
+  ansible.builtin.systemd_service:
+    name: homelab-backup.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

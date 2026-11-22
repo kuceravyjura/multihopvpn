@@ -1,0 +1,90 @@
+---
+- name: Read installed AdGuard Home version
+  ansible.builtin.command: "{{ adguard_dir }}/AdGuardHome --version"
+  register: _adguard_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Decide whether to install
+  ansible.builtin.set_fact:
+    _adguard_present: "{{ _adguard_installed.rc == 0 }}"
+    _adguard_current: "{{ _adguard_installed.stdout | regex_search('v[0-9][0-9.]*') | default('', true) }}"
+
+- name: Report a version other than the pinned one
+  ansible.builtin.debug:
+    msg: >-
+      AdGuard Home {{ _adguard_current }} is installed, pinned is {{ adguard_version }}.
+      Left as is; run with -e adguard_upgrade=true to change it.
+  when: _adguard_present and _adguard_current != adguard_version and not adguard_upgrade
+
+- name: Install pinned AdGuard Home
+  when: not _adguard_present or (adguard_upgrade and _adguard_current != adguard_version)
+  block:
+    - name: Download release
+      ansible.builtin.get_url:
+        url: "{{ adguard_url }}"
+        dest: "/root/AdGuardHome-{{ adguard_version }}.tar.gz"
+        checksum: "sha256:{{ adguard_sha256 }}"
+        mode: "0600"
+
+    # The archive's top folder is AdGuardHome/, so it lands in /opt/AdGuardHome.
+    - name: Unpack to {{ adguard_dir }}
+      ansible.builtin.unarchive:
+        src: "/root/AdGuardHome-{{ adguard_version }}.tar.gz"
+        dest: "{{ adguard_dir | dirname }}"
+        remote_src: true
+      notify: Restart AdGuard Home
+
+    - name: Remove the downloaded archive
+      ansible.builtin.file:
+        path: "/root/AdGuardHome-{{ adguard_version }}.tar.gz"
+        state: absent
+
+# Same as the 2026-11-22 fix on Server 2: the folder holds the config and query logs.
+- name: Keep the AdGuard folder private
+  ansible.builtin.file:
+    path: "{{ adguard_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Check for an existing config
+  ansible.builtin.stat:
+    path: "{{ adguard_dir }}/AdGuardHome.yaml"
+  register: _adguard_cfg
+
+- name: Restore config from backup (only when there is none)
+  ansible.builtin.copy:
+    src: "{{ adguard_restore_config }}"
+    dest: "{{ adguard_dir }}/AdGuardHome.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+  when: adguard_restore_config | length > 0 and not _adguard_cfg.stat.exists
+  notify: Restart AdGuard Home
+
+- name: Self-signed certificate where the restored one is missing
+  ansible.builtin.include_tasks: selfsigned.yml
+  when: adguard_selfsigned_if_missing
+
+- name: Check for the service unit
+  ansible.builtin.stat:
+    path: /etc/systemd/system/AdGuardHome.service
+  register: _adguard_unit
+
+# AdGuard writes its own unit (ExecStart ... -s run), the same way it was installed on Server 2.
+- name: Register AdGuard Home as a service
+  ansible.builtin.command: "{{ adguard_dir }}/AdGuardHome -s install"
+  when: not _adguard_unit.stat.exists
+  changed_when: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Enable and start AdGuard Home
+  ansible.builtin.systemd_service:
+    name: AdGuardHome
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

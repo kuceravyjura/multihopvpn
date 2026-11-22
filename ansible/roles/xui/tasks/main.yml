@@ -1,0 +1,117 @@
+---
+- name: Read installed 3x-ui version
+  ansible.builtin.command: /usr/local/x-ui/x-ui -v
+  register: _xui_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Decide whether to install
+  ansible.builtin.set_fact:
+    _xui_present: "{{ _xui_installed.rc == 0 }}"
+    _xui_install: >-
+      {{ _xui_installed.rc != 0
+         or (xui_upgrade and (_xui_installed.stdout | trim) != xui_version) }}
+
+- name: Report a version other than the pinned one
+  ansible.builtin.debug:
+    msg: >-
+      3x-ui {{ _xui_installed.stdout | trim }} is installed, pinned is {{ xui_version }}.
+      Left as is; run with -e xui_upgrade=true to change it.
+  when: _xui_present and (_xui_installed.stdout | trim) != xui_version and not xui_upgrade
+
+- name: Install pinned 3x-ui
+  when: _xui_install | bool
+  block:
+    - name: Install sqlite3 (reads panel settings, consistent backups)
+      ansible.builtin.apt:
+        name: sqlite3
+        state: present
+        install_recommends: false
+
+    - name: Download release
+      ansible.builtin.get_url:
+        url: "{{ xui_url }}"
+        dest: "/root/x-ui-{{ xui_version }}.tar.gz"
+        checksum: "sha256:{{ xui_sha256 }}"
+        mode: "0600"
+
+    - name: Unpack to /usr/local/x-ui
+      ansible.builtin.unarchive:
+        src: "/root/x-ui-{{ xui_version }}.tar.gz"
+        dest: /usr/local
+        remote_src: true
+
+    - name: Install the systemd unit shipped with the release
+      ansible.builtin.copy:
+        src: /usr/local/x-ui/x-ui.service.debian
+        dest: /etc/systemd/system/x-ui.service
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart x-ui
+
+    - name: Install the x-ui management menu
+      ansible.builtin.copy:
+        src: /usr/local/x-ui/x-ui.sh
+        dest: /usr/bin/x-ui
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Remove the downloaded archive
+      ansible.builtin.file:
+        path: "/root/x-ui-{{ xui_version }}.tar.gz"
+        state: absent
+
+- name: Check for an existing panel database
+  ansible.builtin.stat:
+    path: /etc/x-ui/x-ui.db
+  register: _xui_db
+
+- name: Restore panel database from backup (only when there is none)
+  when: xui_restore_db | length > 0 and not _xui_db.stat.exists
+  block:
+    - name: Install sqlite3
+      ansible.builtin.apt:
+        name: sqlite3
+        state: present
+        install_recommends: false
+
+    - name: Create /etc/x-ui
+      ansible.builtin.file:
+        path: /etc/x-ui
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy x-ui.db
+      ansible.builtin.copy:
+        src: "{{ xui_restore_db }}"
+        dest: /etc/x-ui/x-ui.db
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Restart x-ui
+
+    # A copy must never manage real servers: the database holds node links and their tokens.
+    - name: Switch off links to other panels (nodes) in the restored copy
+      ansible.builtin.command:
+        argv: [sqlite3, /etc/x-ui/x-ui.db, "update nodes set enable = 0;"]
+      when: xui_restore_disable_nodes
+      changed_when: true
+
+- name: Self-signed panel certificate where the restored one is missing
+  ansible.builtin.include_tasks: selfsigned.yml
+  when: xui_selfsigned_if_missing
+
+- name: Enable and start x-ui
+  ansible.builtin.systemd_service:
+    name: x-ui
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"   # not really installed in --check
