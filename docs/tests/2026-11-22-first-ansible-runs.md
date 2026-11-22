@@ -262,6 +262,38 @@ Production (Server 2, then Server 1), failed=0 on both:
 - memory right after start: Prometheus 16, Alertmanager 13, blackbox 2 MB;
 - the watcher on Server 1 reports OK; no user service was touched.
 
+## Phase 7: first monthly restore drill (runbook 09)
+
+Server 2 rebuilt on staging using only what the Google Drive kit holds. The live server and the PC
+copies were not used.
+
+1. `homelab-kit restore`: 4 snapshots in the kit; the newest one restored.
+2. Server 2's newest nightly archive came out of it: gzip intact, panel DB `integrity_check` ok,
+   50 inbounds, 0 enabled node links. Its `x-ui.db` and `AdGuardHome.yaml` went into
+   `backups/restore/s2-lt/`; the previous files were moved to `s2-lt.pre-drill/`.
+3. Staging reset to its clean checkpoint (plain Debian 12, no `ops`, no 3x-ui), then
+   `site.yml -l vm-staging` with the root bootstrap: **ok=123 changed=81 failed=0**.
+
+| Check | Result |
+|---|---|
+| x-ui 3.11.0, AdGuard v0.107.71, backup timer | active |
+| Inbounds / client records / enabled node links | 50 / 22 / 0 |
+| VLESS Reality on 8443, real client built from the restored DB | HTTP 200 through the tunnel (Cloudflare, example.com), ~0.8 s |
+| DoH 3452: example.com, wikipedia.org | answered |
+| DoH 3452: doubleclick.net | blocked (0.0.0.0) |
+| Panel on its secret path over wg-mgmt | HTTP 200; from the LAN: blocked |
+| AdGuard UI over wg-mgmt | HTTP 302 (login) |
+| Dead-man switch | access proved, disarmed |
+
+`homelab-kit drill-done` recorded the drill, so RestoreDrillOverdue is quiet for 35 days.
+
+**Time:** about 15 minutes from the Drive snapshot to a working VPN on staging.
+**Findings:** none blocking. Two small notes:
+- The step that extracts the restore files from the archive is still typed by hand; runbook 09
+  now shows the command.
+- The restored DB still carries the old node-copy duplicates (open decision: clean them on
+  Server 1 and Server 2).
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |

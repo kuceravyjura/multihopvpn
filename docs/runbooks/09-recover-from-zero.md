@@ -100,7 +100,16 @@ reminds you after 35 days, **RestoreDrillOverdue**):
    - the latest server archives are intact.
 2. **Server restore on staging** (runbook 04):
    1. reset staging to its checkpoint;
-   2. restore Server 2's state from the archive that came **out of the kit**, not from the server;
+   2. restore Server 2's state from the archive that came **out of the kit**, not from the server:
+
+      ```bash
+      homelab-kit restore ~/drill/kit
+      A=$(find ~/drill/kit -path '*backups/*/vps2/*.tar.gz' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
+      mkdir -p ~/drill/x && tar xzf "$A" -C ~/drill/x --wildcards '*/x-ui.db' '*/AdGuardHome.yaml'
+      # copy both files into backups/restore/s2-lt/ (keep the old ones aside), then from ansible/:
+      ansible-playbook site.yml -l vm-staging -e ansible_user=root -e ssh_permit_root_login=prohibit-password
+      ```
+
    3. check the panel, AdGuard (DoH answers, ads blocked) and one VPN connection.
 3. `homelab-kit drill-done`. This records the date, so monitoring stops reminding you.
 4. Note anything that did not work in `docs/tests/` and fix the runbook.
