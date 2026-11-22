@@ -67,7 +67,10 @@ The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
   ([ADR 0003](docs/adr/0003-panel-state-and-admin-access.md), [runbook 04](docs/runbooks/04-backup-and-restore.md)).
   Applied to both servers 2026-11-22: root login off (Ansible and people use `ops`), nightly
   backups at 03:40 pulled home with `Backup-Vps.ps1`.
-- [ ] Phase 4: AdGuard for Server 1 users
+- [x] Phase 4: AdGuard for Server 1 users (2026-11-22). Their DNS goes through the relay to
+  Server 2's AdGuard as `srv1-moscow`, with a 1.5 s fallback to 1.1.1.1; canary first, a lab test
+  fixed lost NXDOMAIN answers before rollout ([runbook 05](docs/runbooks/05-moscow-dns-via-adguard.md)).
+  Optional, only if Russian sites get slower: send Russian domains to a local resolver.
 - [ ] Phase 5: retire wg-easy
 - [ ] Phase 6: monitoring and alerts
 - [ ] Phase 7: backups and DR drill

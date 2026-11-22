@@ -166,6 +166,35 @@ backup timer, masked services on Server 2). Root SSH refused, all VPN/DNS servic
 ports unchanged, first backups 556 KB / 524 KB. Defect 9: `Backup-Vps.ps1` tested
 `test -x` as `ops` on a root-only script and fell back to the old collector; now `test -f`.
 
+## Phase 4: Moscow DNS through AdGuard (canary, lab test, rollout)
+
+1. **AdGuard prepared**, rehearsed on staging first: ClientID `srv1-moscow` allowed and named,
+   Server 2's own IP exempt from the 20 q/s limit. A DoH query to `/dns-query/srv1-moscow` on
+   staging was answered and logged with that ClientID. Applied on Server 2 (config backed up,
+   restart, 0 errors, DoT/DoH still public).
+2. **Canary**: Server 1's template changed (DNS module, `dns-out`, routing), validated with
+   Server 1's own `xray run -test`, then the port-53 rule enabled for one inbound (57265, the
+   owner's PC). Through it: `doubleclick.net` → 0.0.0.0, real names resolve, AdGuard listed
+   `srv1-moscow` as top client (121 queries, 12 blocked), the DoH connection came from Server 2's
+   own address (= through the relay). Note: WireSock's per-app split sends the Windows DNS
+   service (`svchost`) outside the tunnel, so `nslookup.exe` was added to the app list for the test.
+3. **Defect 10, caught by the canary**: a nonexistent name got no reply (client waited 10 s).
+   Lab on staging, a throwaway Xray 26.10.21 with seven DNS variants:
+
+| Variant | Real name | Nonexistent name | Server 2 down |
+|---|---|---|---|
+| AdGuard + `localhost` (first canary) | ok | **no reply** | no reply |
+| AdGuard only | ok | NXDOMAIN 100 ms | no reply |
+| AdGuard + 1.1.1.1 | ok | NXDOMAIN 216 ms | no reply within 4 s |
+| **AdGuard (timeoutMs 1500) + 1.1.1.1** | ok, 300 ms | NXDOMAIN 148 ms | **ok in ~1.5 s** (no ad blocking) |
+
+   The last one was applied, with only the AdGuard connection routed through the relay (a
+   fallback through the relay would fail together with it). Re-test on the canary: nonexistent
+   names ~0.5 s, ads blocked, real names 250-300 ms.
+4. **Rollout** to all 15 inbounds (port-53 rule without an inbound list, so new inbounds are
+   covered). Each added rule has a `ruleTag` describing it in the panel. x-ui active, 0 Xray DNS
+   errors, 0 AdGuard refusals or rate-limit hits, DoH connection from the relay stays up.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |

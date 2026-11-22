@@ -172,14 +172,14 @@ pre .c { color: var(--muted); }
 <section>
   <div class="eyebrow">Where it stands · 2026-11-22</div>
   <h2>Progress</h2>
-  <div class="bar" role="img" aria-label="3 of 10 phases done, 2 in progress, 5 not started">
-    <span class="b-done" style="width:30%"></span>
+  <div class="bar" role="img" aria-label="5 of 10 phases done, 2 in progress, 3 not started">
+    <span class="b-done" style="width:50%"></span>
     <span class="b-part" style="width:20%"></span>
   </div>
   <div class="bar-legend">
-    <span><b>3</b> phases done</span>
+    <span><b>5</b> phases done</span>
     <span><b>2</b> in progress</span>
-    <span><b>5</b> not started</span>
+    <span><b>3</b> not started</span>
   </div>
 
   <div class="tablewrap">
@@ -189,12 +189,12 @@ pre .c { color: var(--muted); }
         <tr><td>0 Inventory</td><td><span class="pill p-ok">Done</span></td><td>Backups of both servers, inventory pages, read-only health-check script</td></tr>
         <tr><td>1 Quick fixes</td><td><span class="pill p-ok">Done</span></td><td>Cleanup, updates, reboots, SSH and TLS fixes. Firewall on both servers: admin pages tunnel-only.</td></tr>
         <tr><td>2 Home lab</td><td><span class="pill p-ok">Done</span></td><td>WSL + Ansible, vm-staging, vault and keys. wg-mgmt works: home reaches both servers over 10.99.0.x.</td></tr>
-        <tr><td>3 Ansible</td><td><span class="pill p-warn">Started</span></td><td>5 edge roles (incl. firewall with dead-man switch) live on both servers. Left: xui/adguard/backup roles.</td></tr>
-        <tr><td>4 DNS for Moscow</td><td><span class="pill p-idle">Not started</span></td><td>Design ready (Xray DNS module → DoH via the tunnel)</td></tr>
+        <tr><td>3 Ansible</td><td><span class="pill p-ok">Done</span></td><td>8 roles live on both servers; Ansible as <code>ops</code>, root login off. A fresh staging VM becomes a copy of Server 2 in one run (4.5 min).</td></tr>
+        <tr><td>4 DNS for Moscow</td><td><span class="pill p-ok">Done</span></td><td>All Server 1 inbounds use AdGuard via the relay (<code>srv1-moscow</code>), 1.5 s fallback to 1.1.1.1. Canary caught lost NXDOMAIN answers; fixed after a lab test.</td></tr>
         <tr><td>5 Retire wg-easy</td><td><span class="pill p-idle">Not started</span></td><td>Server 2 only. Server 1 never had it, and both already run Xray WireGuard inbounds.</td></tr>
         <tr><td>6 Monitoring</td><td><span class="pill p-idle">Not started</span></td><td>Node exporter already running on staging and Server 2</td></tr>
-        <tr><td>7 Backups / DR</td><td><span class="pill p-idle">Not started</span></td><td>Manual backup script exists; restic and the DR drill are not done</td></tr>
-        <tr><td>8 CI/CD</td><td><span class="pill p-warn">Started</span></td><td>Lint pipeline written and passing locally. Repo not committed or pushed yet.</td></tr>
+        <tr><td>7 Backups / DR</td><td><span class="pill p-warn">Started</span></td><td>Nightly backups on both servers, pulled home over the tunnel; restore proven on staging. Off-site copy (restic) not done.</td></tr>
+        <tr><td>8 CI/CD</td><td><span class="pill p-warn">Started</span></td><td>Repo on GitHub; lint workflow (yamllint, ansible-lint, vault check) runs on push. Deploy pipeline not done.</td></tr>
         <tr><td>9 Extras</td><td><span class="pill p-idle">Not started</span></td><td></td></tr>
       </tbody>
     </table>
@@ -450,7 +450,7 @@ pre .c { color: var(--muted); }
     </div></li>
 
     <li class="phase"><div class="num">3</div><div class="phase-body">
-      <div class="phase-head"><h3>Everything in Ansible</h3><span class="when">weeks 3–4</span><span class="pill p-warn">Started</span></div>
+      <div class="phase-head"><h3>Everything in Ansible</h3><span class="when">weeks 3–4</span><span class="pill p-ok">Done</span></div>
       <ul>
         <li>Roles: <code>common</code>, <code>hardening</code>, <code>firewall</code>, <code>wg_mgmt</code>, <code>xui</code>, <code>adguard</code>, <code>node_exporter</code>, <code>backup</code>.</li>
         <li><code>hardening</code>: a sudo user, <code>PermitRootLogin no</code>, SSH listening on the mgmt IP only.</li>
@@ -464,7 +464,7 @@ pre .c { color: var(--muted); }
     </div></li>
 
     <li class="phase"><div class="num">4</div><div class="phase-body">
-      <div class="phase-head"><h3>AdGuard for Moscow users</h3><span class="when">week 4</span><span class="pill p-idle">Not started</span></div>
+      <div class="phase-head"><h3>AdGuard for Moscow users</h3><span class="when">week 4</span><span class="pill p-ok">Done</span></div>
       <ul>
         <li>Xray DNS module on Server 1, pointing at <code>https://dns.yourdomain:3452/dns-query/srv1-moscow</code>, with a <code>hosts</code> entry so the name resolves without DNS.</li>
         <li>A routing rule sends the DNS module's own traffic through the vless outbound to Server 2.</li>
