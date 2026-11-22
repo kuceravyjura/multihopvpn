@@ -79,5 +79,10 @@ The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
   ([ADR 0005](docs/adr/0005-monitoring-placement.md), [runbook 07](docs/runbooks/07-monitoring.md)).
   Grafana at home (WSL, Ansible role, dashboard as code) reads Server 2's history over wg-mgmt.
   Left: Xray per-inbound traffic stats; "what is reachable from Moscow directly" probes.
-- [ ] Phase 7: backups and DR drill
+- [ ] Phase 7: backups and recovery. **2026-11-22:** nightly backups are monitored (BackupStale,
+  BackupTooSmall); an encrypted **recovery kit on Google Drive** (restic + rclone, SSH keys, vault
+  password, repo bundle, server backups, WireGuard export, private access sheet) is uploaded
+  automatically and verified by restoring it; one master password in Bitwarden
+  ([runbook 08](docs/runbooks/08-recovery-kit.md), [runbook 09](docs/runbooks/09-recover-from-zero.md)).
+  Left: first full monthly drill (staging restored from the kit), then it repeats monthly.
 - [ ] Phase 8: CI/CD deploys

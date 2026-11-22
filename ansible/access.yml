@@ -1,0 +1,49 @@
+---
+# Writes the private access sheet (backups/recovery/ACCESS.md, git-ignored, inside the encrypted
+# recovery kit) from the vault and the panels' live settings. Read-only on the servers.
+#   ansible-playbook access.yml
+- name: Read panel settings
+  hosts: vps
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Panel ports and paths
+      ansible.builtin.command:
+        argv: [sqlite3, -separator, "=", /etc/x-ui/x-ui.db,
+               "select key, value from settings where key in ('webPort','webBasePath','subPort','subPath');"]
+      register: _panel
+      changed_when: false
+      check_mode: false
+
+    - name: Keep them
+      ansible.builtin.set_fact:
+        panel: "{{ dict(_panel.stdout_lines | map('split', '=', 1)) }}"
+
+- name: Write the access sheet
+  hosts: vm-ctl
+  gather_facts: false
+  become: false
+  vars:
+    private: true
+    s1_ip: "{{ vault_s1_public_ip }}"
+    s2_ip: "{{ vault_s2_public_ip }}"
+    s2_domain: "{{ vault_s2_domain }}"
+    staging_ip: "{{ hostvars['vm-staging'].ansible_host }}"
+    ntfy_topic: "{{ vault_ntfy_topic }}"
+    p1: "{{ hostvars['s1-msk'].panel }}"
+    p2: "{{ hostvars['s2-lt'].panel }}"
+    s1_panel: >-
+      https://{{ vault_s1_public_ip }}:{{ p1.webPort }}{{ p1.webBasePath }}
+      (tunnel: https://10.99.0.11:{{ p1.webPort }}{{ p1.webBasePath }})
+    s2_panel: >-
+      https://{{ vault_s2_domain }}:{{ p2.webPort }}{{ p2.webBasePath }}
+      (tunnel: https://10.99.0.12:{{ p2.webPort }}{{ p2.webBasePath }})
+    s1_sub: "https://{{ vault_s1_public_ip }}:{{ p1.subPort }}{{ p1.subPath }}"
+    s2_sub: "https://{{ vault_s2_domain }}:{{ p2.subPort }}{{ p2.subPath }}"
+    agh_public: "https://{{ vault_s2_domain }}:3452 (UI shares the DoH port)"
+  tasks:
+    - name: Render
+      ansible.builtin.template:
+        src: ../docs/templates/ACCESS.md.j2
+        dest: "{{ playbook_dir }}/../backups/recovery/ACCESS.md"
+        mode: "0600"

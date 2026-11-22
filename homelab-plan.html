@@ -193,7 +193,7 @@ pre .c { color: var(--muted); }
         <tr><td>4 DNS for Moscow</td><td><span class="pill p-ok">Done</span></td><td>All Server 1 inbounds use AdGuard via the relay (<code>srv1-moscow</code>), 1.5 s fallback to 1.1.1.1. Canary caught lost NXDOMAIN answers; fixed after a lab test.</td></tr>
         <tr><td>5 Retire wg-easy</td><td><span class="pill p-warn">Started</span></td><td>All wg-easy users moved to 3x-ui without touching devices (same keys and port). Remove wg-easy and Docker after 2026-11-29.</td></tr>
         <tr><td>6 Monitoring</td><td><span class="pill p-ok">Done</span></td><td>Prometheus + Alertmanager on Server 2, probes both ways, Telegram alerts in ~1.5 min, ntfy dead man&#39;s switch from Server 1, Grafana at home. Left: Xray traffic stats.</td></tr>
-        <tr><td>7 Backups / DR</td><td><span class="pill p-warn">Started</span></td><td>Nightly backups on both servers, pulled home over the tunnel; restore proven on staging. Off-site copy (restic) not done.</td></tr>
+        <tr><td>7 Backups / DR</td><td><span class="pill p-warn">Started</span></td><td>Nightly backups monitored; encrypted recovery kit on Google Drive, uploaded automatically and verified by restore; one master key in Bitwarden. Left: the first full monthly drill.</td></tr>
         <tr><td>8 CI/CD</td><td><span class="pill p-warn">Started</span></td><td>Repo on GitHub; lint workflow (yamllint, ansible-lint, vault check) runs on push. Deploy pipeline not done.</td></tr>
         <tr><td>9 Extras</td><td><span class="pill p-idle">Not started</span></td><td></td></tr>
       </tbody>
@@ -499,7 +499,7 @@ pre .c { color: var(--muted); }
     </div></li>
 
     <li class="phase"><div class="num">7</div><div class="phase-body">
-      <div class="phase-head"><h3>Backups and disaster recovery</h3><span class="when">week 8</span><span class="pill p-idle">Not started</span></div>
+      <div class="phase-head"><h3>Backups and disaster recovery</h3><span class="when">week 8</span><span class="pill p-warn">Started</span></div>
       <ul>
         <li>Nightly restic backup of <code>x-ui.db</code>, the AdGuard config and <code>/etc/wireguard</code> to home and to an offsite bucket, with a retention policy.</li>
         <li>Restore test every month, on staging.</li>

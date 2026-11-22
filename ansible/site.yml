@@ -48,3 +48,5 @@
       tags: [wg_mgmt]
     - role: grafana
       tags: [grafana]
+    - role: recovery_kit
+      tags: [recovery_kit]

@@ -20,3 +20,6 @@ backup_paths:
   - /etc/systemd/system/AdGuardHome.service
   - /etc/nftables.conf
   - /etc/nftables.d
+
+# node_exporter's text-file directory (Debian/Ubuntu default): the backup reports its result there.
+backup_metrics_dir: /var/lib/prometheus/node-exporter

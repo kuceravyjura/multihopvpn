@@ -1,0 +1,14 @@
+---
+- name: Install restic and rclone
+  ansible.builtin.apt:
+    name: [restic, rclone]
+    state: present
+    install_recommends: false
+
+- name: Kit script
+  ansible.builtin.template:
+    src: homelab-kit.sh.j2
+    dest: /usr/local/bin/homelab-kit
+    owner: root
+    group: root
+    mode: "0755"

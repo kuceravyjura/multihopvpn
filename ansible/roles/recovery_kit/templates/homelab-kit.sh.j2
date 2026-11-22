@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Managed by Ansible (role: recovery_kit). Encrypted recovery kit -> Google Drive (restic + rclone).
+# Run as your normal WSL user:  homelab-kit            (backup + upload + report)
+#                               homelab-kit full       (+ prune old snapshots + verify; Sundays anyway)
+#                               homelab-kit snapshots  (list)    homelab-kit restore <dir>
+set -euo pipefail
+CONF="$HOME/.config/homelab-kit"; mkdir -p "$CONF"; chmod 700 "$CONF"
+export RESTIC_REPOSITORY="rclone:{{ kit_rclone_remote }}:{{ kit_drive_folder }}"
+export RESTIC_PASSWORD_FILE="$CONF/restic-password"
+REPO={{ kit_repo_dir | quote }}
+
+if [ ! -s "$RESTIC_PASSWORD_FILE" ]; then
+  umask 077; head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32 > "$RESTIC_PASSWORD_FILE"
+  echo "NEW restic password created in $RESTIC_PASSWORD_FILE"
+  echo "Copy it into Bitwarden NOW (item 'homelab recovery kit'); without it the kit cannot be opened."
+  exit 2
+fi
+rclone listremotes | grep -qx '{{ kit_rclone_remote }}:' || { echo "rclone remote '{{ kit_rclone_remote }}' missing: run the setup in runbook 08"; exit 3; }
+
+case "${1:-backup}" in
+  snapshots) exec restic snapshots ;;
+  restore)   exec restic restore latest --target "${2:?target dir}" ;;
+  backup)    ;;
+  full)      FULL=1 ;;
+  verify)    VERIFY=1 ;;
+  drill-done) DRILL=1 ;;
+  *) echo "usage: homelab-kit [backup|full|snapshots|restore <dir>|verify|drill-done]"; exit 1 ;;
+esac
+
+restic cat config >/dev/null 2>&1 || restic init
+
+report() {  # name value: write a metric on Server 2 (node_exporter text-file collector)
+  printf '# TYPE %s gauge
+%s %s
+' "$1" "$1" "$2" | ssh -o BatchMode=yes {{ kit_report_host }}     "sudo tee /var/lib/prometheus/node-exporter/$1.prom.tmp >/dev/null && sudo chmod 644 /var/lib/prometheus/node-exporter/$1.prom.tmp && sudo mv /var/lib/prometheus/node-exporter/$1.prom.tmp /var/lib/prometheus/node-exporter/$1.prom"
+}
+
+if [ "${DRILL:-}" = 1 ]; then
+  report homelab_restore_drill_last_timestamp_seconds "$(date +%s)" && echo "restore drill recorded (next one due in a month)"
+  exit 0
+fi
+
+if [ "${VERIFY:-}" = 1 ]; then  # restore the newest snapshot to a temp dir and prove it is usable
+  T=$(mktemp -d); trap 'rm -rf "$T"' EXIT; fail=0
+  restic restore latest --target "$T" >/dev/null
+  chmod -R u+rwX "$T"            # Windows files come back with odd modes; also lets cleanup work
+  ok() { if eval "$2" >/dev/null 2>&1; then echo "  OK   $1"; else echo "  FAIL $1"; fail=1; fi; }
+  VP=$(find "$T" -name ansible-vault-password | head -1); BUNDLE=$(find "$T" -name homelab-repo.bundle | head -1)
+  VAULT=$(find "$T" -path '*/ansible/group_vars/all/vault.yml' | head -1)
+  [ -z "$VAULT" ] && { git clone -q "$BUNDLE" "$T/repo" 2>/dev/null; VAULT="$T/repo/ansible/group_vars/all/vault.yml"; }
+  ok "vault password opens the vault"       "ANSIBLE_VAULT_PASSWORD_FILE='$VP' $HOME/.local/bin/ansible-vault view '$VAULT' | grep -q vault_s1_public_ip"
+  ok "repository bundle clones"              "test -d '$T/repo/.git' || git clone -q '$BUNDLE' '$T/repo'"
+  keyok() { k=$(find "$T" -path "$1" | head -1); [ -n "$k" ] && install -m 600 "$k" "$T/k" && ssh-keygen -y -f "$T/k"; }
+  ok "WSL SSH key is a valid key"            "keyok '*home/*/.ssh/id_ed25519'"
+  ok "Windows SSH key is a valid key"        "keyok '*Users/*/.ssh/id_ed25519'"
+  ok "WireGuard tunnel export is readable"   "python3 -m zipfile -t \"\$(find '$T' -name wireguard-tunnels.zip | head -1)\""
+  ok "access sheet present"                  "test -s \"\$(find '$T' -name ACCESS.md | head -1)\""
+  while IFS= read -r a; do ok "server archive $(basename "$a") intact" "gzip -t \"$a\""; done     < <(find "$T" -path '*backups/20*' -name '*.tar.gz' -printf '%T@ %p
+' | sort -n | tail -2 | cut -d' ' -f2-)
+  [ "$fail" = 0 ] && echo "kit verified: everything needed to recover is in the newest snapshot" || { echo "KIT INCOMPLETE"; exit 1; }
+  exit 0
+fi
+
+# What a new PC needs to get everything back (all of it inside restic's encryption):
+WINHOME=$(wslpath "$(powershell.exe -NoProfile -Command '$env:USERPROFILE' | tr -d '\r')")
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+git -C "$REPO" bundle create "$TMP/homelab-repo.bundle" --all 2>/dev/null
+cp "$HOME/.ansible/homelab-vault-pass" "$TMP/ansible-vault-password"
+PATHS=("$TMP" "$HOME/.ssh" "$WINHOME/.ssh" "$REPO/backups")
+restic backup --host homelab-pc --tag kit --exclude '*.part' "${PATHS[@]}"
+# Pruning and verifying cost many Drive API calls (Google throttles rclone's shared key), so they
+# run once a week (Sunday) or on request: homelab-kit full
+if [ "$(date +%u)" = 7 ] || [ "${FULL:-}" = 1 ]; then
+  restic forget --host homelab-pc --tag kit {{ kit_keep }} --prune
+  restic check
+fi
+
+# Tell monitoring (RecoveryKitStale alert): via the SSH alias, over the tunnel.
+printf '# HELP homelab_kit_last_upload_timestamp_seconds Last successful recovery-kit upload to Google Drive.\n# TYPE homelab_kit_last_upload_timestamp_seconds gauge\nhomelab_kit_last_upload_timestamp_seconds %s\n' "$(date +%s)" \
+  | ssh -o BatchMode=yes {{ kit_report_host }} 'sudo tee /var/lib/prometheus/node-exporter/homelab_kit.prom.tmp >/dev/null && sudo chmod 644 /var/lib/prometheus/node-exporter/homelab_kit.prom.tmp && sudo mv /var/lib/prometheus/node-exporter/homelab_kit.prom.tmp /var/lib/prometheus/node-exporter/homelab_kit.prom' \
+  && echo "reported to monitoring" || echo "WARNING: upload OK, but reporting to monitoring failed"
+echo "recovery kit uploaded: $(date)"

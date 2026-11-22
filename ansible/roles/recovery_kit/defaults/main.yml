@@ -1,0 +1,10 @@
+---
+# Encrypted recovery kit on Google Drive (phase 7). Runs on the home PC (WSL) as the normal
+# user, started by a Windows scheduled task. One secret opens it: the restic password, kept in
+# Bitwarden (and in ~/.config/homelab-kit/ for the automatic runs).
+kit_rclone_remote: gdrive               # created once with `rclone config` (runbook 08)
+kit_drive_folder: homelab-recovery-kit
+kit_keep: "--keep-daily 14 --keep-weekly 8 --keep-monthly 12"
+kit_repo_dir: "{{ playbook_dir | dirname }}"    # this repository, as seen from WSL
+# Where the PC reports a successful upload, so Server 2 alerts if uploads stop (RecoveryKitStale).
+kit_report_host: vps2

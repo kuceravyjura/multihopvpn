@@ -70,3 +70,40 @@ groups:
           severity: warning
         annotations:
           summary: "Short-lived certificate for {{ $labels.probe }} expires in {{ $value | humanize }} days (renewal failing?)"
+
+  - name: backups
+    rules:
+      # Nightly backup at 03:40 (+10 min). Two missed runs in a row are not allowed to go unnoticed.
+      - alert: BackupStale
+        expr: time() - homelab_backup_last_success_timestamp_seconds > 26 * 3600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No successful nightly backup on {{ $labels.host }} for {{ $value | humanizeDuration }}"
+
+      - alert: BackupTooSmall
+        expr: homelab_backup_last_size_bytes < 10000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Newest backup on {{ $labels.host }} is only {{ $value | humanize1024 }}B (files missing?)"
+
+      # The home PC reports each Google Drive upload of the recovery kit to Server 2 (job "node", host s2-lt).
+      - alert: RecoveryKitStale
+        expr: time() - homelab_kit_last_upload_timestamp_seconds > 3 * 86400
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Recovery kit not uploaded to Google Drive for {{ $value | humanizeDuration }} (PC off or upload failing)"
+
+      # The monthly restore drill (runbook 09) records its date the same way.
+      - alert: RestoreDrillOverdue
+        expr: time() - homelab_restore_drill_last_timestamp_seconds > 35 * 86400
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "Monthly restore drill is due (last one {{ $value | humanizeDuration }} ago)"

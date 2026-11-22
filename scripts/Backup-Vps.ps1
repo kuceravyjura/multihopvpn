@@ -20,10 +20,13 @@
 .EXAMPLE
   .\scripts\Backup-Vps.ps1
   .\scripts\Backup-Vps.ps1 -Hosts vps2
+  .\scripts\Backup-Vps.ps1 -Latest      # newest nightly archive only (used by the scheduled task)
 #>
 param(
     [string[]]$Hosts = @('vps1', 'vps2'),
-    [string]$Destination = (Join-Path $PSScriptRoot '..\backups')
+    [string]$Destination = (Join-Path $PSScriptRoot '..\backups'),
+    # Download the newest nightly archive instead of making a new one (scheduled runs).
+    [switch]$Latest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,6 +36,18 @@ $stamp = Get-Date -Format 'yyyy-MM-dd'
 foreach ($h in $Hosts) {
     $dir = Join-Path $Destination (Join-Path $stamp $h)
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
+
+    if ($Latest) {
+        $remoteTgz = (ssh $h 'ls -t /var/backups/homelab/*.tar.gz | head -1' | Select-Object -Last 1).Trim()
+        if ($LASTEXITCODE -ne 0 -or -not $remoteTgz) { throw "[$h] no nightly archive found" }
+        $local = Join-Path $dir (Split-Path $remoteTgz -Leaf)
+        if (Test-Path $local) { Write-Host "[$h] newest archive already here: $local"; continue }
+        Write-Host "[$h] downloading newest nightly archive $remoteTgz"
+        scp -q "${h}:$remoteTgz" $dir
+        if ($LASTEXITCODE -ne 0) { throw "[$h] download failed" }
+        Write-Host "[$h] saved to $dir" -ForegroundColor Green
+        continue
+    }
 
     ssh $h 'test -f /usr/local/sbin/homelab-backup'
     if ($LASTEXITCODE -eq 0) {

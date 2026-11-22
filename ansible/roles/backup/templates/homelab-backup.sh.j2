@@ -42,4 +42,18 @@ chgrp {{ backup_reader_group }} "$DIR/$NAME.tar.gz"
 chmod 0640 "$DIR/$NAME.tar.gz"
 
 find "$DIR" -maxdepth 1 -name '*.tar.gz' -mtime +{{ backup_keep_days }} -delete
+
+# For monitoring (node_exporter text-file collector): written only after a complete run.
+PROM={{ backup_metrics_dir }}/homelab_backup.prom
+if [ -d {{ backup_metrics_dir }} ]; then
+  cat > "$PROM.tmp" <<METRICS
+# HELP homelab_backup_last_success_timestamp_seconds When the last nightly backup finished.
+# TYPE homelab_backup_last_success_timestamp_seconds gauge
+homelab_backup_last_success_timestamp_seconds $(date +%s)
+# HELP homelab_backup_last_size_bytes Size of the newest backup archive.
+# TYPE homelab_backup_last_size_bytes gauge
+homelab_backup_last_size_bytes $(stat -c %s "$DIR/$NAME.tar.gz")
+METRICS
+  chmod 0644 "$PROM.tmp"; mv "$PROM.tmp" "$PROM"
+fi
 echo "$DIR/$NAME.tar.gz $(du -h "$DIR/$NAME.tar.gz" | cut -f1)"
