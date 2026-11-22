@@ -34,7 +34,7 @@ foreach ($h in $Hosts) {
     $dir = Join-Path $Destination (Join-Path $stamp $h)
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
 
-    ssh $h 'test -x /usr/local/sbin/homelab-backup'
+    ssh $h 'test -f /usr/local/sbin/homelab-backup'
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[$h] running homelab-backup"
         $output = ssh $h 'sudo -n /usr/local/sbin/homelab-backup'

@@ -161,6 +161,11 @@ Defects found and fixed on staging:
 8. Server 2 dry run: udisks2 and upower were disabled but running again (D-Bus activation), so the
    common role "changed" them on every run. They are now masked.
 
+**Applied to the servers** (Server 2, then Server 1): only the dry-run changes (root login off,
+backup timer, masked services on Server 2). Root SSH refused, all VPN/DNS services active, public
+ports unchanged, first backups 556 KB / 524 KB. Defect 9: `Backup-Vps.ps1` tested
+`test -x` as `ops` on a root-only script and fell back to the old collector; now `test -f`.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |
