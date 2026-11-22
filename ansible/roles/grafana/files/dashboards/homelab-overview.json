@@ -473,7 +473,7 @@
     {
       "id": 9,
       "type": "state-timeline",
-      "title": "Service state (1 = active)",
+      "title": "Services (green = running)",
       "datasource": {
         "type": "prometheus",
         "uid": "prom-s2"
@@ -491,8 +491,8 @@
             "type": "prometheus",
             "uid": "prom-s2"
           },
-          "expr": "node_systemd_unit_state{state=\"active\"}",
-          "legendFormat": "{{host}} {{name}}"
+          "expr": "label_replace(node_systemd_unit_state{state=\"active\", name=~\"(x-ui|AdGuardHome|nginx|zapret|wg-quick@wg-mgmt|prometheus|prometheus-alertmanager|prometheus-blackbox-exporter)[.]service|(homelab-backup|homelab-watcher)[.]timer\"}, \"unit\", \"$1\", \"name\", \"(.+)[.](service|timer)\")",
+          "legendFormat": "{{host}} · {{unit}}"
         }
       ],
       "fieldConfig": {
@@ -534,7 +534,10 @@
       "options": {
         "showValue": "never",
         "mergeValues": true,
-        "rowHeight": 0.8
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false
+        }
       }
     },
     {
