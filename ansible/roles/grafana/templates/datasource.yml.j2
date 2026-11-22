@@ -1,0 +1,12 @@
+# Managed by Ansible (role: grafana)
+apiVersion: 1
+datasources:
+  - name: Prometheus (Server 2)
+    uid: prom-s2
+    type: prometheus
+    access: proxy
+    url: {{ grafana_prometheus_url }}
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 30s

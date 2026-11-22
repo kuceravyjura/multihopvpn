@@ -172,14 +172,14 @@ pre .c { color: var(--muted); }
 <section>
   <div class="eyebrow">Where it stands · 2026-11-22</div>
   <h2>Progress</h2>
-  <div class="bar" role="img" aria-label="5 of 10 phases done, 2 in progress, 3 not started">
-    <span class="b-done" style="width:50%"></span>
-    <span class="b-part" style="width:20%"></span>
+  <div class="bar" role="img" aria-label="6 of 10 phases done, 3 in progress, 1 not started">
+    <span class="b-done" style="width:60%"></span>
+    <span class="b-part" style="width:30%"></span>
   </div>
   <div class="bar-legend">
-    <span><b>5</b> phases done</span>
-    <span><b>2</b> in progress</span>
-    <span><b>3</b> not started</span>
+    <span><b>6</b> phases done</span>
+    <span><b>3</b> in progress</span>
+    <span><b>1</b> not started</span>
   </div>
 
   <div class="tablewrap">
@@ -191,8 +191,8 @@ pre .c { color: var(--muted); }
         <tr><td>2 Home lab</td><td><span class="pill p-ok">Done</span></td><td>WSL + Ansible, vm-staging, vault and keys. wg-mgmt works: home reaches both servers over 10.99.0.x.</td></tr>
         <tr><td>3 Ansible</td><td><span class="pill p-ok">Done</span></td><td>8 roles live on both servers; Ansible as <code>ops</code>, root login off. A fresh staging VM becomes a copy of Server 2 in one run (4.5 min).</td></tr>
         <tr><td>4 DNS for Moscow</td><td><span class="pill p-ok">Done</span></td><td>All Server 1 inbounds use AdGuard via the relay (<code>srv1-moscow</code>), 1.5 s fallback to 1.1.1.1. Canary caught lost NXDOMAIN answers; fixed after a lab test.</td></tr>
-        <tr><td>5 Retire wg-easy</td><td><span class="pill p-idle">Not started</span></td><td>Server 2 only. Server 1 never had it, and both already run Xray WireGuard inbounds.</td></tr>
-        <tr><td>6 Monitoring</td><td><span class="pill p-idle">Not started</span></td><td>Node exporter already running on staging and Server 2</td></tr>
+        <tr><td>5 Retire wg-easy</td><td><span class="pill p-warn">Started</span></td><td>All wg-easy users moved to 3x-ui without touching devices (same keys and port). Remove wg-easy and Docker after 2026-11-29.</td></tr>
+        <tr><td>6 Monitoring</td><td><span class="pill p-ok">Done</span></td><td>Prometheus + Alertmanager on Server 2, probes both ways, Telegram alerts in ~1.5 min, ntfy dead man&#39;s switch from Server 1, Grafana at home. Left: Xray traffic stats.</td></tr>
         <tr><td>7 Backups / DR</td><td><span class="pill p-warn">Started</span></td><td>Nightly backups on both servers, pulled home over the tunnel; restore proven on staging. Off-site copy (restic) not done.</td></tr>
         <tr><td>8 CI/CD</td><td><span class="pill p-warn">Started</span></td><td>Repo on GitHub; lint workflow (yamllint, ansible-lint, vault check) runs on push. Deploy pipeline not done.</td></tr>
         <tr><td>9 Extras</td><td><span class="pill p-idle">Not started</span></td><td></td></tr>
@@ -475,7 +475,7 @@ pre .c { color: var(--muted); }
     </div></li>
 
     <li class="phase"><div class="num">5</div><div class="phase-body">
-      <div class="phase-head"><h3>Retire wg-easy</h3><span class="when">weeks 5–6</span><span class="pill p-idle">Not started</span></div>
+      <div class="phase-head"><h3>Retire wg-easy</h3><span class="when">weeks 5–6</span><span class="pill p-warn">Started</span></div>
       <ul>
         <li>On staging, add a 3x-ui WireGuard inbound and benchmark it against wg-easy with <code>iperf3</code>: throughput, CPU, latency.</li>
         <li>Server 2 first. Create the new peers, move users in batches, and keep wg-easy running as a rollback for one week.</li>
@@ -487,7 +487,7 @@ pre .c { color: var(--muted); }
     </div></li>
 
     <li class="phase"><div class="num">6</div><div class="phase-body">
-      <div class="phase-head"><h3>Monitoring and alerts</h3><span class="when">week 7</span><span class="pill p-idle">Not started</span></div>
+      <div class="phase-head"><h3>Monitoring and alerts</h3><span class="when">week 7</span><span class="pill p-ok">Done</span></div>
       <ul>
         <li>Prometheus on vm-mon scrapes node_exporter and Xray stats over the mgmt network.</li>
         <li>Blackbox probes run from each server against a list of domains, so you can see what's reachable from Moscow versus Lithuania.</li>

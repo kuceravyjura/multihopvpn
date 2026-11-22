@@ -77,6 +77,7 @@ The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
 - [ ] Phase 6: monitoring. **Live 2026-11-22:** Prometheus + Alertmanager on Server 2, probes both
   ways, Telegram alerts (~1.5 min), dead man's switch on Server 1 via ntfy
   ([ADR 0005](docs/adr/0005-monitoring-placement.md), [runbook 07](docs/runbooks/07-monitoring.md)).
-  Left: Grafana at home with dashboards as code; Xray per-inbound traffic stats.
+  Grafana at home (WSL, Ansible role, dashboard as code) reads Server 2's history over wg-mgmt.
+  Left: Xray per-inbound traffic stats; "what is reachable from Moscow directly" probes.
 - [ ] Phase 7: backups and DR drill
 - [ ] Phase 8: CI/CD deploys

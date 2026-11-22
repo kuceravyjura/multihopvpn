@@ -21,7 +21,22 @@ Telegram messages show [prod] or [staging]. Resolved ones start with "Resolved:"
 
 - **Prometheus:** `http://10.99.0.12:9090` over the homelab-mgmt tunnel. See Alerts, Targets and Graph.
 - **The watcher on Server 1:** `journalctl -u homelab-watcher -n 5`.
-- **Grafana at home:** to be added.
+- **Grafana at home:** `http://localhost:3000`, user `admin`. The password is in the vault, with a copy in the git-ignored `backups/phase6/grafana-admin.txt`. Open **Homelab → Homelab overview**.
+
+## Grafana (home PC, WSL)
+
+- Role `grafana` on `vm-ctl` (the WSL Ubuntu):
+  `wsl -u root ... ansible-playbook site.yml -l vm-ctl --tags grafana`.
+- It listens on 127.0.0.1:3000 only. Windows reaches it through WSL's localhost forwarding.
+- The data source is Server 2's Prometheus over wg-mgmt, so the history has no gaps when the PC was
+  off.
+- The dashboard is code: `ansible/roles/grafana/files/dashboards/homelab-overview.json`. It is
+  provisioned read-only. To change it:
+  1. edit the dashboard in the UI and save it as a copy;
+  2. export the JSON and replace the file;
+  3. re-run the role.
+- WSL stops some time after its last window closes, and Grafana stops with it. Open a WSL Ubuntu
+  terminal (or run `wsl -d Ubuntu-24.04`) to start it again.
 
 ## Add a probe
 

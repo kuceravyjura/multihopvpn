@@ -1,0 +1,10 @@
+# Managed by Ansible (role: grafana). Dashboards come from the repo (roles/grafana/files/dashboards).
+apiVersion: 1
+providers:
+  - name: homelab
+    folder: Homelab
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards/homelab

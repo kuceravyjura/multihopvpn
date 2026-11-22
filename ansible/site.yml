@@ -46,3 +46,5 @@
       tags: [common]
     - role: wg_mgmt
       tags: [wg_mgmt]
+    - role: grafana
+      tags: [grafana]

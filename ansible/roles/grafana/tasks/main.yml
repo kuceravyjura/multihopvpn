@@ -1,0 +1,91 @@
+---
+- name: Grafana apt key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Grafana apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main"
+    filename: grafana
+    state: present
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    install_recommends: false
+
+
+- name: Load the homelab settings
+  ansible.builtin.copy:
+    dest: /etc/default/grafana-server
+    content: |
+      # Managed by Ansible (role: grafana). Settings via environment (GF_<SECTION>_<KEY>).
+      GRAFANA_USER=grafana
+      GRAFANA_GROUP=grafana
+      GRAFANA_HOME=/usr/share/grafana
+      LOG_DIR=/var/log/grafana
+      DATA_DIR=/var/lib/grafana
+      MAX_OPEN_FILES=10000
+      CONF_DIR=/etc/grafana
+      CONF_FILE=/etc/grafana/grafana.ini
+      RESTART_ON_UPGRADE=true
+      PLUGINS_DIR=/var/lib/grafana/plugins
+      PROVISIONING_CFG_DIR=/etc/grafana/provisioning
+      PID_FILE_DIR=/run/grafana
+      GF_SERVER_HTTP_ADDR={{ grafana_listen_addr }}
+      GF_SERVER_HTTP_PORT={{ grafana_port }}
+      GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
+      GF_ANALYTICS_REPORTING_ENABLED=false
+      GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=false
+      GF_USERS_ALLOW_SIGN_UP=false
+    owner: root
+    group: grafana
+    mode: "0640"
+  no_log: true
+  notify: Restart grafana
+
+- name: Data source (Server 2's Prometheus over wg-mgmt)
+  ansible.builtin.template:
+    src: datasource.yml.j2
+    dest: /etc/grafana/provisioning/datasources/homelab.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Dashboard provider
+  ansible.builtin.template:
+    src: dashboards.yml.j2
+    dest: /etc/grafana/provisioning/dashboards/homelab.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Dashboards directory
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards/homelab
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
+
+- name: Dashboards from the repo
+  ansible.builtin.copy:
+    src: dashboards/
+    dest: /var/lib/grafana/dashboards/homelab/
+    owner: grafana
+    group: grafana
+    mode: "0644"
+
+- name: Enable Grafana
+  ansible.builtin.systemd_service:
+    name: grafana-server
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
