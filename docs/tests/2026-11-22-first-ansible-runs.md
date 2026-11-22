@@ -221,6 +221,20 @@ staging; staging's Xray stopped to play "Server 2 down":
 Per-person DNS identity (ADR 0004) was load-tested (under 1% CPU, +16-36 MB during a 1,500-lookup
 burst) and then deferred: it would take this fallback away. Its route was removed from Server 2.
 
+## Phase 5: wg-easy users moved to 3x-ui (Server 2)
+
+Runbook 06. The staging rehearsal used one idle peer's real keys from WSL: handshake with preshared
+key, UDP DNS ~10 ms, HTTPS 200, ~90 Mbit/s download. A first UDP failure turned out to be a
+malformed query in my own test script; tcpdump showed it.
+
+On the real server the import also created a node copy. Deleting it set off the node-sync storm
+(postmortem 2026-11-22). After both panels were restored and the links switched off, the cutover ran
+at 18:08:58:
+- wg-easy stopped and set not to restart; the inbound switched on in the panel (live, no Xray
+  restart);
+- `wge-shizpc_lithua` came online within seconds with its unchanged config;
+- Xray 54 MB RAM, ~0% CPU; RAM available 505 → 519 MB.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |

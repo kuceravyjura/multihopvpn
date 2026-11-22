@@ -71,7 +71,9 @@ The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
   Server 2's AdGuard as `srv1-moscow`, with a 1.5 s fallback to 1.1.1.1; canary first, a lab test
   fixed lost NXDOMAIN answers before rollout ([runbook 05](docs/runbooks/05-moscow-dns-via-adguard.md)).
   Optional, only if Russian sites get slower: send Russian domains to a local resolver.
-- [ ] Phase 5: retire wg-easy
+- [ ] Phase 5: retire wg-easy. **Users moved to 3x-ui on 2026-11-22** without touching their devices
+  (same server key, port and peer keys; [runbook 06](docs/runbooks/06-wg-easy-to-3x-ui.md)).
+  Left after a quiet week (2026-11-29): remove wg-easy and Docker, then the matching Ansible settings.
 - [ ] Phase 6: monitoring and alerts
 - [ ] Phase 7: backups and DR drill
 - [ ] Phase 8: CI/CD deploys
