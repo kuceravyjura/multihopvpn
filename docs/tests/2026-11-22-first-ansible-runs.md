@@ -195,6 +195,17 @@ ports unchanged, first backups 556 KB / 524 KB. Defect 9: `Backup-Vps.ps1` teste
    covered). Each added rule has a `ruleTag` describing it in the panel. x-ui active, 0 Xray DNS
    errors, 0 AdGuard refusals or rate-limit hits, DoH connection from the relay stays up.
 
+## Per-user DNS identity: lab proof (staging)
+
+Design and results in [ADR 0004](../adr/0004-per-user-dns-identity.md). Source-address check:
+with `ip route add local 10.53.0.0/24 dev lo`, a local connection to 10.53.0.7 uses 10.53.0.7 as
+its source (a `src` hint on the route is rejected; a dummy interface also works but needs one
+address per user). AdGuard then logged the client as 10.53.0.7. End to end through a real relay
+hop (fake Server 1 on staging): WireGuard-style and vless-style users logged as 10.53.0.7 and
+10.53.0.8, ads blocked, NXDOMAIN intact. Defect 11: Xray 26's `direct` outbound drops private
+destinations (`finalRules`), fixed with a dedicated `adguard-local` outbound. Staging keeps the
+route (until reboot) and the rule for further work.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |
