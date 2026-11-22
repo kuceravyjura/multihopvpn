@@ -37,7 +37,8 @@ firewall_mgmt_tcp:
   - 6902    # 3x-ui panel
   - 2096    # 3x-ui subscriptions: not used by clients (configs rarely change)
 
-# The two 3x-ui panels are linked as nodes: Server 2's panel polls this panel on 6902
-# over the internet. Allow exactly that source, so the node sync keeps working.
+# Server 2's address may reach this panel. Originally for the panel node link (links are off
+# since the 2026-11-22 incident); kept on purpose as the owner's second way in: phone on a
+# Server 2 VPN profile -> this panel on 6902. Still needs the secret path + login.
 firewall_extra_rules:
   - 'ip saddr {{ vault_s2_public_ip }} tcp dport 6902 accept'

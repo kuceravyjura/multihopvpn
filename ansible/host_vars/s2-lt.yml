@@ -50,8 +50,9 @@ firewall_extra_rules:
   # wg-easy clients query AdGuard through the Docker bridge.
   - 'iifname "docker0" meta l4proto { tcp, udp } th dport 53 accept'
   - 'iifname "br-*" meta l4proto { tcp, udp } th dport 53 accept'
-  # The two 3x-ui panels are linked as nodes: Server 1's panel polls this panel on 6903
-  # over the internet. Allow exactly that source, so the node sync keeps working.
+  # Server 1's address may reach this panel. Originally for the panel node link (links are off
+  # since the 2026-11-22 incident); kept on purpose as the owner's second way in: phone on a
+  # Server 1 VPN profile -> https://<s2-domain>:6903/<path>. Still needs the secret path + login.
   - 'ip saddr {{ vault_s1_public_ip }} tcp dport 6903 accept'
 
 adguard_enabled: true

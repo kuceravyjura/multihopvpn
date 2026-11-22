@@ -14,7 +14,7 @@ firewall_enabled: true
 firewall_ssh_public: true
 # Restored copy of Server 2 (phase 3 proof): same public ports, admin UIs over wg-mgmt.
 firewall_public_tcp: [80, 443, 853, 1111, 3452, 8443]
-firewall_public_udp: [3452]
+firewall_public_udp: [3452, 51820]   # 51820: wg-easy migration rehearsal (phase 5)
 firewall_mgmt_tcp: [2053, 2096, 3000, 6903]
 
 # Restore Server 2's state from a backup pulled home (backups/ is git-ignored).
