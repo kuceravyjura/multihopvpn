@@ -12,7 +12,7 @@ new PC. **What opens it:** one password, kept in Bitwarden.
 | The whole repository (git bundle) | this repo; survives even losing GitHub |
 | Server backups (nightly archives) | `backups/<date>/vps1`, `vps2` |
 | WireGuard tunnel `homelab-mgmt` | `backups/recovery/wireguard-tunnels.zip` (exported by hand once) |
-| Private access sheet | `backups/recovery/ACCESS.md` (`ansible-playbook access.yml`) |
+| Private access sheet + panel launcher page | `backups/recovery/ACCESS.md`, `panels.html` (`ansible-playbook access.yml`) |
 
 **Not in it:**
 - **zapret:** reinstalled out of the box if ever needed.

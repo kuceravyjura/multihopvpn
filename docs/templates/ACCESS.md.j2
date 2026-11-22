@@ -28,7 +28,7 @@ All admin access goes through the WireGuard tunnel `homelab-mgmt` (Windows) / `w
 | Subscriptions S1 / S2 | {{ s1_sub }} / {{ s2_sub }} | (no login) |
 | AdGuard Home | http://10.99.0.12:3000 (tunnel) or {{ agh_public }} | Bitwarden: "AdGuard Home" |
 | Prometheus | http://10.99.0.12:9090 (tunnel, no login) | - |
-| Grafana | http://localhost:3000 (home PC, WSL running) | vault `vault_grafana_admin_password` |
+| Grafana | http://127.0.0.1:3000 (home PC; desktop shortcut "Homelab" wakes it) | vault `vault_grafana_admin_password` |
 | ntfy watcher topic | https://ntfy.sh/{{ ntfy_topic }} | the topic itself is the secret |
 | Telegram alerts | your bot | vault `vault_telegram_bot_token` |
 

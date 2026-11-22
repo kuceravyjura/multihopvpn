@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homelab panels</title>
+{# Rendered by `ansible-playbook access.yml` into backups/recovery/panels.html (git-ignored).
+   The template holds no addresses: they come from the vault and the live panel settings. #}
+<style>
+:root {
+  --bg: #f6f5f1; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a64; --line: #e3e1d9;
+  --accent: #1d6f5a; --accent-ink: #ffffff; --soft: #e6f2ee; --warn: #8a5a0b; --warn-bg: #faefdc;
+  --ok: #2f8f4e; --off: #a3a199; --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171716; --card: #21211f; --ink: #ecebe6; --muted: #a3a199; --line: #33332f;
+    --accent: #5dcaa5; --accent-ink: #0b2a22; --soft: #1c302a; --warn: #f0b860; --warn-bg: #33281a;
+    --ok: #6fcf8f; --off: #5f5e5a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line);
+  border-radius: 999px; background: var(--card); font-size: 13px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--off); flex: none; }
+.dot.ok { background: var(--ok); }
+h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  margin: 32px 0 12px; display: flex; gap: 10px; align-items: baseline; }
+h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px; }
+.top { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+.name { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.port { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.what { color: var(--muted); font-size: 14px; margin: 0; }
+.meta { font-size: 13px; display: grid; gap: 2px; }
+.meta span { color: var(--muted); }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--soft); color: var(--accent); white-space: nowrap; }
+.tag.out { background: var(--warn-bg); color: var(--warn); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+a.btn, button.btn { font: inherit; font-size: 14px; text-decoration: none; cursor: pointer; border-radius: 8px;
+  padding: 7px 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); }
+a.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+a.btn:hover, button.btn:hover { filter: brightness(0.96); border-color: var(--muted); }
+code { font-family: var(--mono); font-size: 13px; }
+.ssh { display: flex; flex-wrap: wrap; gap: 8px; }
+.ssh button { font-family: var(--mono); font-size: 13px; }
+.note { font-size: 13px; color: var(--muted); margin-top: 32px; border-top: 1px solid var(--line); padding-top: 16px; }
+.note p { margin: 4px 0; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <h1>Homelab panels</h1>
+    <p class="sub">Turn on the <b>homelab-mgmt</b> tunnel in WireGuard first. Logins are in Bitwarden.</p>
+  </div>
+  <div class="status" aria-live="polite">
+    <span class="pill"><span class="dot" id="st-tunnel"></span>Tunnel to Server 2</span>
+    <span class="pill"><span class="dot" id="st-grafana"></span>Grafana (WSL)</span>
+    <span class="pill"><span class="dot" id="st-staging"></span>Staging</span>
+    <button class="btn" onclick="checkAll()">Recheck</button>
+  </div>
+</header>
+
+<div id="sections"></div>
+
+<h2>SSH <small>click to copy</small></h2>
+<div class="ssh">
+  <button class="btn" data-copy="ssh vps2">ssh vps2</button>
+  <button class="btn" data-copy="ssh vps1">ssh vps1</button>
+  <button class="btn" data-copy="ssh ops@{{ staging_ip }}">ssh ops@{{ staging_ip }}</button>
+  <button class="btn" data-copy="ssh vps2-pub" title="Break-glass: only works while the firewall dead-man switch is open">ssh vps2-pub</button>
+  <button class="btn" data-copy="ssh vps1-pub" title="Break-glass: only works while the firewall dead-man switch is open">ssh vps1-pub</button>
+</div>
+
+<div class="note">
+  <p><b>Certificate warning on the 3x-ui panels over the tunnel</b> is expected: the certificate is issued for
+  the public address, not 10.99.0.x. The connection is still encrypted, inside WireGuard.</p>
+  <p><b>"Via … VPN" buttons</b> are the phone route: connect to the other server's VPN profile first.</p>
+  <p><b>Status dots</b> are a quick reachability check from this page; if the browser blocks local-network
+  checks they stay grey even when things work. Generated {{ now(utc=true).strftime('%Y-%m-%d %H:%M') }} UTC
+  by <code>ansible-playbook access.yml</code>. Re-run it after changing a panel port or path.</p>
+</div>
+</main>
+
+<script>
+const SECTIONS = [
+  { title: "Server 2", hint: "Lithuania, exit server and monitoring", cards: [
+    { name: "3x-ui panel", port: ":{{ p2.webPort }}", what: "Inbounds, clients, routing of the exit server.",
+      login: "Bitwarden: 3x-ui Server 2", tag: "Tunnel + from Server 1", out: true,
+      links: [["Open (tunnel)", {{ ('https://10.99.0.12:' ~ p2.webPort ~ p2.webBasePath) | to_json }}],
+              ["Via Server 1 VPN", {{ ('https://' ~ s2_domain ~ ':' ~ p2.webPort ~ p2.webBasePath) | to_json }}]] },
+    { name: "AdGuard Home", port: ":3000", what: "DNS filtering for every user, query log, blocklists.",
+      login: "Bitwarden: AdGuard Home", tag: "Tunnel; also public on :3452", out: true,
+      links: [["Open (tunnel)", "http://10.99.0.12:3000"],
+              ["Public :3452", {{ ('https://' ~ s2_domain ~ ':3452') | to_json }}]] },
+    { name: "Prometheus", port: ":9090", what: "Metrics and alert rules for both servers.",
+      login: "No login (tunnel only)", tag: "Tunnel only",
+      links: [["Alerts", "http://10.99.0.12:9090/classic/alerts"], ["Targets", "http://10.99.0.12:9090/classic/targets"],
+              ["Query", "http://10.99.0.12:9090/classic/graph"]] },
+  ]},
+  { title: "Server 1", hint: "Moscow, relay", cards: [
+    { name: "3x-ui panel", port: ":{{ p1.webPort }}", what: "Inbounds, clients and relay routing to Server 2.",
+      login: "Bitwarden: 3x-ui Server 1", tag: "Tunnel + from Server 2", out: true,
+      links: [["Open (tunnel)", {{ ('https://10.99.0.11:' ~ p1.webPort ~ p1.webBasePath) | to_json }}],
+              ["Via Server 2 VPN", {{ ('https://' ~ s1_ip ~ ':' ~ p1.webPort ~ p1.webBasePath) | to_json }}]] },
+  ]},
+  { title: "Home PC", hint: "runs only while WSL is running", cards: [
+    { name: "Grafana", port: ":3000", what: "Dashboard: servers, services, probes, backups.",
+      login: "User admin; password in the Ansible vault", tag: "This PC only",
+      links: [["Open", "http://127.0.0.1:3000"]] },
+    { name: "ntfy watcher", port: "", what: "Server 1's push channel if Server 2's monitoring is gone.",
+      login: "The topic name is the secret", tag: "Public topic", out: true,
+      links: [["Open topic", {{ ('https://ntfy.sh/' ~ ntfy_topic) | to_json }}]] },
+  ]},
+  { title: "Staging", hint: "Hyper-V test copy of Server 2, only while the VM runs", cards: [
+    { name: "3x-ui panel", port: ":{{ p2.webPort }}", what: "Restored copy of Server 2's panel.",
+      login: "Same login as Server 2", tag: "Tunnel / LAN",
+      links: [["Open (tunnel)", {{ ('https://10.99.0.21:' ~ p2.webPort ~ p2.webBasePath) | to_json }}]] },
+    { name: "AdGuard Home", port: ":3000", what: "Staging DNS filter.",
+      login: "Same login as Server 2", tag: "Tunnel / LAN",
+      links: [["Open (tunnel)", "http://10.99.0.21:3000"]] },
+    { name: "Prometheus", port: ":9090", what: "Staging monitoring (no Telegram).",
+      login: "No login", tag: "Tunnel / LAN",
+      links: [["Alerts", "http://10.99.0.21:9090/classic/alerts"]] },
+  ]},
+];
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+document.getElementById("sections").innerHTML = SECTIONS.map(s => `
+  <h2>${esc(s.title)} <small>${esc(s.hint)}</small></h2>
+  <div class="grid">${s.cards.map(c => `
+    <article class="card">
+      <div class="top">
+        <div class="name">${esc(c.name)} <span class="port">${esc(c.port)}</span></div>
+        <span class="tag${c.out ? " out" : ""}">${esc(c.tag)}</span>
+      </div>
+      <p class="what">${esc(c.what)}</p>
+      <div class="meta"><div><span>Login:</span> ${esc(c.login)}</div></div>
+      <div class="btns">${c.links.map((l, i) =>
+        `<a class="btn${i === 0 ? " primary" : ""}" href="${esc(l[1])}" target="_blank" rel="noopener">${esc(l[0])}</a>`).join("")}
+        <button class="btn" data-copy="${esc(c.links[0][1])}" title="Copy link">Copy</button>
+      </div>
+    </article>`).join("")}
+  </div>`).join("");
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-copy]"); if (!b) return;
+  navigator.clipboard.writeText(b.dataset.copy).then(() => {
+    const t = b.textContent; b.textContent = "Copied"; setTimeout(() => b.textContent = t, 1200);
+  });
+});
+
+async function probe(id, url) {
+  const dot = document.getElementById(id);
+  dot.className = "dot";
+  try {
+    await fetch(url, { mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(3000) });
+    dot.className = "dot ok"; dot.parentElement.title = "reachable";
+  } catch { dot.parentElement.title = "not reachable from this page"; }
+}
+function checkAll() {
+  probe("st-tunnel", "http://10.99.0.12:9090/-/healthy");
+  probe("st-grafana", "http://127.0.0.1:3000/api/health");
+  probe("st-staging", "http://10.99.0.21:9090/-/healthy");
+}
+checkAll();
+</script>
+</body>
+</html>

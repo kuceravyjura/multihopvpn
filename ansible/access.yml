@@ -1,6 +1,7 @@
 ---
-# Writes the private access sheet (backups/recovery/ACCESS.md, git-ignored, inside the encrypted
-# recovery kit) from the vault and the panels' live settings. Read-only on the servers.
+# Writes the private access sheet (backups/recovery/ACCESS.md) and the panel launcher page
+# (backups/recovery/panels.html), both git-ignored and inside the encrypted recovery kit, from the
+# vault and the panels' live settings. Read-only on the servers.
 #   ansible-playbook access.yml
 - name: Read panel settings
   hosts: vps
@@ -44,6 +45,9 @@
   tasks:
     - name: Render
       ansible.builtin.template:
-        src: ../docs/templates/ACCESS.md.j2
-        dest: "{{ playbook_dir }}/../backups/recovery/ACCESS.md"
+        src: "../docs/templates/{{ item.src }}"
+        dest: "{{ playbook_dir }}/../backups/recovery/{{ item.dest }}"
         mode: "0600"
+      loop:
+        - {src: ACCESS.md.j2, dest: ACCESS.md}
+        - {src: panels.html.j2, dest: panels.html}   # buttons for every panel; open in a browser
