@@ -55,3 +55,7 @@ firewall_extra_rules:
   - 'ip saddr {{ vault_s1_public_ip }} tcp dport 6903 accept'
 
 adguard_enabled: true
+
+# ADR 0004 (deferred): per-user DNS identity would remove Server 1's DNS fallback.
+# Reliability first: everyone stays srv1-moscow. The role removes the route while false.
+dns_identity_enabled: false

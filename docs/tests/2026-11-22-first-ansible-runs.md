@@ -206,6 +206,21 @@ hop (fake Server 1 on staging): WireGuard-style and vless-style users logged as 
 destinations (`finalRules`), fixed with a dedicated `adguard-local` outbound. Staging keeps the
 route (until reboot) and the rule for further work.
 
+## Server 2 outage with the live phase 4 config (staging)
+
+A fake Server 1 built from Server 1's live Xray DNS and routing sections, relay pointed at
+staging; staging's Xray stopped to play "Server 2 down":
+
+| Stage | Real name | Ad domain | Nonexistent | Note |
+|---|---|---|---|---|
+| Normal | ok | 0.0.0.0 | answered | first lookup ~1 s (relay setup) |
+| Down, at once | ok, 0 ms | 0.0.0.0 | ok | Xray DNS cache |
+| Down, 10 s later | ok, 12 ms | real address (1.1.1.1) | ok | fallback, no ad blocking |
+| Back | ok | 0.0.0.0 | ok | AdGuard again, automatically |
+
+Per-person DNS identity (ADR 0004) was load-tested (under 1% CPU, +16-36 MB during a 1,500-lookup
+burst) and then deferred: it would take this fallback away. Its route was removed from Server 2.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |

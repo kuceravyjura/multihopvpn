@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Per-user DNS identity, Server 2 side: deliver DNS for 10.53.0.0/24 locally (AdGuard).
 Inserted right after the api rule, so it wins over the WARP and private-IP rules. Idempotent.
-Not applied to the real Server 2 yet (lab-tested on staging, ADR 0004).
+Deferred (ADR 0004): lab-tested on staging, never applied to Server 2.
 usage: xray-dns-identity-s2.py <template.json> <out.json>"""
 import sys, json
 c = json.load(open(sys.argv[1], encoding="utf-8"))

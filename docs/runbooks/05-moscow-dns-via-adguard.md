@@ -21,6 +21,15 @@ user device ──WG/vless──► Server 1 Xray
 - Only plain DNS (port 53) is caught. Apps with their own encrypted DNS (browser "secure DNS",
   DoH/DoT to 443/853) bypass it, as everywhere.
 
+## What users see when Server 2 is down (tested 2026-11-22)
+
+Staging, with Server 1's exact live DNS config and staging's Xray stopped as "Server 2 down":
+cached names answer at once; new names go to 1.1.1.1 (12 ms when Server 2 refuses, ~1.5 s when it
+is silent); not one lookup failed; ads are not blocked during the outage. When Server 2 is back,
+answers come from AdGuard again by themselves. Nothing to do on the devices or the servers.
+
+Per-person AdGuard clients were considered and deferred for this reason (ADR 0004).
+
 ## Where it is in the panel (Server 1)
 
 Xray Configs → **DNS** (2 servers), **Hosts** (Server 2's name → IP), **Outbounds** (`dns-out`),

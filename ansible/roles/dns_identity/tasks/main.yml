@@ -1,0 +1,54 @@
+---
+- name: Remove the identity range (role disabled)
+  when: not dns_identity_enabled
+  block:
+    - name: Stop and disable the unit (its ExecStop removes the route)
+      ansible.builtin.systemd_service:
+        name: homelab-dns-identity
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Remove the unit file
+      ansible.builtin.file:
+        path: /etc/systemd/system/homelab-dns-identity.service
+        state: absent
+      register: _dns_identity_unit_removed
+
+    - name: Reload systemd after removal
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: _dns_identity_unit_removed.changed
+
+- name: Install the identity range (role enabled)
+  when: dns_identity_enabled
+  block:
+    - name: Install the identity-range unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/homelab-dns-identity.service
+        content: |
+          # Managed by Ansible (role: dns_identity). ADR 0004.
+          [Unit]
+          Description=Per-user DNS identity range {{ dns_identity_range }} (local, for AdGuard)
+          After=network.target
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/usr/sbin/ip route replace local {{ dns_identity_range }} dev lo
+          ExecStop=/usr/sbin/ip route del local {{ dns_identity_range }} dev lo
+
+          [Install]
+          WantedBy=multi-user.target
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart dns identity route
+
+    - name: Enable the identity range
+      ansible.builtin.systemd_service:
+        name: homelab-dns-identity
+        enabled: true
+        state: started
+        daemon_reload: true
+      ignore_errors: "{{ ansible_check_mode }}"

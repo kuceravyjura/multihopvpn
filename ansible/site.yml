@@ -26,6 +26,8 @@
       when: adguard_enabled | default(false)
     - role: backup
       tags: [backup]
+    - role: dns_identity        # installs or removes itself (dns_identity_enabled)
+      tags: [dns_identity]
 
 - name: Home control node
   hosts: home

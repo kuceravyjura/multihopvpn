@@ -25,3 +25,6 @@ adguard_restore_config: "{{ playbook_dir }}/../backups/restore/s2-lt/AdGuardHome
 # Server 2's certificates are not copied to staging; stand-ins keep the services starting.
 xui_selfsigned_if_missing: true
 adguard_selfsigned_if_missing: true
+
+# ADR 0004: 10.53.0.N is local here, so AdGuard sees each user's DNS address as the client.
+dns_identity_enabled: true

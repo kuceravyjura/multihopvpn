@@ -1,0 +1,5 @@
+---
+# Per-user DNS identity (ADR 0004): every address in this range is local, so Xray delivers
+# DNS for 10.53.0.N to AdGuard with 10.53.0.N as the source. AdGuard names clients by it.
+dns_identity_enabled: false
+dns_identity_range: 10.53.0.0/24

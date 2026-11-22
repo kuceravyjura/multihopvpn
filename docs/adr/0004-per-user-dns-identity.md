@@ -1,6 +1,26 @@
 # ADR 0004: per-user DNS identity through the relay
 
-**Status:** proposed (2026-11-22). Lab-proven on staging; not on the real servers yet.
+**Status:** deferred (2026-11-22). Works in the lab, but fails the main requirement: users press
+"On" and never have to do anything else, even while Server 2 is in maintenance.
+
+## Why deferred
+
+Every per-person variant moves DNS failure handling from Server 1 to the phones:
+
+| Design | Server 2 down: what users see | Per-person names |
+|---|---|---|
+| Phase 4 (kept) | Server 1 answers via 1.1.1.1 itself; nothing visible but ads | no, one `srv1-moscow` |
+| Per person, destination rewritten on Server 1 | no DNS, so no internet | yes |
+| Per person on 1.1.1.1, phase 4 on 1.0.0.1 | 1-5 s stalls while phones give up on the first server; differs by phone; single-DNS configs get nothing | mostly |
+
+Reliability wins: everyone stays one AdGuard client. If the per-person view is ever needed, the
+reliable form is a small forwarder on Server 1 with one entry per person, each asking AdGuard
+with that person's name and falling back to 1.1.1.1 itself (est. 20-40 MB RAM on Server 1).
+Users who cannot reinstall configs also rule out anything that needs a new client config; a
+server-side rewrite per inbound (one inbound = one person) would avoid that.
+
+Cleanup: the 10.53.0.0/24 route was removed from Server 2 (`dns_identity_enabled: false`; the role
+removes itself). Staging keeps it for lab work. Neither server's Xray was changed.
 
 ## Context
 
@@ -30,6 +50,11 @@ Per person: one AdGuard client. Per vless user additionally: one outbound and on
 Server 1. Nothing per user on Server 2's Xray, and no firewall change.
 
 ## Lab result (staging, 2026-11-22)
+
+Resource test (fake Server 1 → relay → Server 2 copy, a new source port per lookup):
+1,500 lookups at ~10/s: 99-100% answered, ~40 ms, under 1% CPU per Xray, memory +16-36 MB during
+the burst (UDP sessions linger, then are released). Real `srv1-moscow` load is ~0.1 lookups/s.
+
 
 A throwaway Xray played Server 1 with Server 1's real relay settings, pointed at staging's Xray
 (a copy of Server 2):
