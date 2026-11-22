@@ -1,0 +1,43 @@
+---
+# Server 1 · Moscow · Debian 12 · 1 vCPU / 512 MB
+# Ports from the 2026-11-21 inventory (docs/inventory/s1-msk.md).
+
+wg_mgmt_ip: 10.99.0.11
+wg_mgmt_endpoint: "{{ vault_s1_public_ip }}:{{ wg_mgmt_port }}"
+wg_mgmt_public_key: "r8IL5n2yvluSiRN1VGoxabllHRtGXwCISCLvUzlhM2A="
+
+# A 1 GB swap file already exists; zram would only add a second swap layer.
+zram_enabled: false
+
+# No wg-easy here (users are on Xray WireGuard inbounds, which run in userspace).
+common_ip_forward: false
+
+# Stage A (2026-11-22): firewall on, SSH still public. Ports re-checked against live listeners.
+firewall_enabled: true
+firewall_ssh_public: true          # false only after SSH over wg-mgmt works
+firewall_public_tcp:
+  - 80      # acme.sh standalone renewal of the IP certificate (6-day certs, renewed every few days)
+  - 8443    # vless + Reality (tcp)
+  - 11139   # vless + Reality (xhttp)
+firewall_public_udp:               # Xray WireGuard inbounds. Keep in sync with the panel.
+  - 11757
+  - 22387
+  - 27975
+  - 31667
+  - 32526
+  - 33540
+  - 38897
+  - 44877
+  - 45043
+  - 48034
+  - 53621
+  - 56214
+  - 57265
+firewall_mgmt_tcp:
+  - 6902    # 3x-ui panel
+  - 2096    # 3x-ui subscriptions: not used by clients (configs rarely change)
+
+# The two 3x-ui panels are linked as nodes: Server 2's panel polls this panel on 6902
+# over the internet. Allow exactly that source, so the node sync keeps working.
+firewall_extra_rules:
+  - 'ip saddr {{ vault_s2_public_ip }} tcp dport 6902 accept'

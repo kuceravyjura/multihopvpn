@@ -1,0 +1,19 @@
+# Phase-0 backups contain secrets (client keys, password hashes). Never commit them.
+backups/
+
+# Ansible
+*.retry
+.vault_pass*
+vault_pass*
+ansible/collections/
+ansible/.ansible/
+
+# Python / tooling
+.venv/
+__pycache__/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

@@ -1,0 +1,183 @@
+---
+- name: Check that port lists are filled in
+  ansible.builtin.assert:
+    that:
+      - (firewall_public_tcp + firewall_public_udp + firewall_mgmt_tcp) | map('string') | select('search', 'TODO') | list | length == 0
+      - (firewall_public_tcp + firewall_public_udp) | length > 0
+    fail_msg: "Port lists for {{ inventory_hostname }} are empty or contain TODO. Fill them from `ss -tlnp` / `ss -ulnp`."
+    quiet: true
+
+- name: Check that wg-mgmt is up before public SSH is closed
+  ansible.builtin.command: "ip link show {{ wg_mgmt_interface }}"
+  changed_when: false
+  check_mode: false
+  when: not firewall_ssh_public
+
+- name: Check whether ufw is active
+  # Read-only query; the systemd module would fail when ufw isn't installed.
+  ansible.builtin.command: systemctl is-active ufw  # noqa: command-instead-of-module
+  register: _firewall_ufw
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Warn about ufw
+  ansible.builtin.debug:
+    msg: "ufw is active. Both rule sets apply; disable ufw once these rules are confirmed."
+  when: _firewall_ufw.stdout == 'active'
+
+# ---------------------------------------------------------------------------
+# Dead-man switch: unlocks the firewall N minutes after a change unless someone
+# disarms it (over wg-mgmt, which proves the tunnel works). The timer is enabled,
+# so it also re-arms at boot: rebooting from the provider console doesn't defeat it.
+# When it fires it removes the rules AND stops them loading at boot.
+# ---------------------------------------------------------------------------
+- name: Install dead-man switch units
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.name }}"
+    content: "{{ item.content }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - name: homelab-fw-deadman.service
+      content: |
+        # Managed by Ansible (role: firewall)
+        [Unit]
+        Description=Homelab firewall dead-man switch: unlock because nobody disarmed it
+
+        [Service]
+        Type=oneshot
+        ExecStart=-/usr/sbin/nft delete table inet homelab
+        ExecStart=/bin/systemctl disable nftables.service
+        ExecStart=/bin/systemctl disable homelab-fw-deadman.timer
+        ExecStart=/usr/bin/logger -t homelab-deadman "firewall UNLOCKED: dead-man switch was not disarmed; rerun Ansible to restore"
+    - name: homelab-fw-deadman.timer
+      content: |
+        # Managed by Ansible (role: firewall)
+        [Unit]
+        Description=Unlock the homelab firewall {{ firewall_deadman_minutes }} min after arming (or boot) unless disarmed
+
+        [Timer]
+        OnActiveSec={{ firewall_deadman_minutes }}min
+        AccuracySec=10s
+
+        [Install]
+        WantedBy=timers.target
+  register: _firewall_deadman_units
+  when: firewall_deadman_minutes | int > 0
+
+- name: Install the disarm command
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/homelab-fw-disarm
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (role: firewall). Run over wg-mgmt once everything is verified.
+      systemctl disable --now homelab-fw-deadman.timer 2>/dev/null
+      echo "dead-man switch disarmed on $(hostname); firewall stays on"
+      logger -t homelab-deadman "disarmed by ${SUDO_USER:-root}"
+    owner: root
+    group: root
+    mode: "0755"
+  when: firewall_deadman_minutes | int > 0
+
+- name: Check whether the homelab table is loaded
+  ansible.builtin.command: /usr/sbin/nft list table inet homelab
+  register: _firewall_table
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Render ruleset
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0755"
+    backup: true
+    validate: /usr/sbin/nft -c -f %s
+  register: _firewall_conf
+
+# Load when the file changed, or when the rules are missing (e.g. the dead-man switch fired).
+- name: Decide whether rules must be (re)loaded
+  ansible.builtin.set_fact:
+    _firewall_reload: "{{ (_firewall_conf is changed) or (_firewall_table.rc != 0) or (firewall_deadman_force | bool) }}"
+
+- name: Arm the dead-man switch
+  ansible.builtin.systemd_service:
+    name: homelab-fw-deadman.timer
+    enabled: true
+    state: restarted
+    daemon_reload: "{{ _firewall_deadman_units is changed }}"
+  when: firewall_deadman_minutes | int > 0 and _firewall_reload | bool
+  ignore_errors: "{{ ansible_check_mode }}"   # units aren't really written in --check
+
+- name: Apply new rules with automatic rollback
+  when: _firewall_reload | bool
+  block:
+    - name: Clear any old rollback timer  # noqa: command-instead-of-module
+      # The units may not exist; this must never fail.
+      ansible.builtin.shell: |
+        systemctl stop homelab-fw-rollback.timer 2>/dev/null || true
+        systemctl reset-failed homelab-fw-rollback.timer homelab-fw-rollback.service 2>/dev/null || true
+      changed_when: false
+
+    - name: Arm rollback timer (removes the homelab table unless cancelled)
+      ansible.builtin.command: >-
+        systemd-run --unit=homelab-fw-rollback --on-active={{ firewall_rollback_seconds }}
+        /usr/sbin/nft delete table inet homelab
+      changed_when: true
+
+    - name: Load ruleset
+      ansible.builtin.command: /usr/sbin/nft -f /etc/nftables.conf
+      changed_when: true
+
+    - name: Drop the current SSH connection
+      ansible.builtin.meta: reset_connection
+
+    - name: Prove a fresh SSH connection still works
+      ansible.builtin.wait_for_connection:
+        timeout: 30
+
+    - name: Cancel rollback timer
+      ansible.builtin.systemd_service:
+        name: homelab-fw-rollback.timer
+        state: stopped
+      ignore_errors: "{{ ansible_check_mode }}"   # the timer is never really created in --check
+
+- name: Create nftables drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/nftables.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Debian's unit runs "nft flush ruleset" on stop, which would also wipe Docker's tables.
+- name: Make stopping nftables remove only the homelab table
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/nftables.service.d/10-homelab.conf
+    content: |
+      # Managed by Ansible (role: firewall)
+      [Service]
+      ExecStop=
+      ExecStop=-/usr/sbin/nft delete table inet homelab
+    owner: root
+    group: root
+    mode: "0644"
+  register: _firewall_unit
+
+- name: Load rules at boot
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    daemon_reload: "{{ _firewall_unit is changed }}"
+
+- name: Remind how to disarm
+  ansible.builtin.debug:
+    msg: >-
+      Dead-man switch ARMED on {{ inventory_hostname }}: the firewall unlocks in
+      {{ firewall_deadman_minutes }} minutes. When everything is verified, disarm over the tunnel:
+      ssh root@{{ wg_mgmt_ip }} homelab-fw-disarm
+  when: firewall_deadman_minutes | int > 0 and _firewall_reload | bool

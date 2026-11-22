@@ -1,0 +1,579 @@
+<title>Homelab Build Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (~880px), wide diagrams scroll inside their own frames; phases as a numbered timeline. */
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --chip: #eef2f4;
+  --fg: #16212b;
+  --muted: #56636f;
+  --line: #cdd6dc;
+  --accent: #0f7a8a;
+  --accent-soft: #dcf0f2;
+  --warn: #b26a00;
+  --warn-bg: #fff3df;
+  --bad: #b3261e;
+  --bad-bg: #fde8e6;
+  --ok: #2e7d32;
+  --ok-bg: #e5f3e6;
+  --font-display: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1519; --surface: #172026; --chip: #1f2a31; --fg: #e3eaee; --muted: #9aa8b2;
+    --line: #33424c; --accent: #4cc3d1; --accent-soft: #143840;
+    --warn: #f0b04a; --warn-bg: #3a2a10; --bad: #ff8a80; --bad-bg: #3d1a18;
+    --ok: #81c784; --ok-bg: #1a3320; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1519; --surface: #172026; --chip: #1f2a31; --fg: #e3eaee; --muted: #9aa8b2;
+  --line: #33424c; --accent: #4cc3d1; --accent-soft: #143840;
+  --warn: #f0b04a; --warn-bg: #3a2a10; --bad: #ff8a80; --bad-bg: #3d1a18;
+  --ok: #81c784; --ok-bg: #1a3320; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+}
+.wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.45rem; font-weight: 700; }
+h3 { font-size: 1.08rem; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+code { background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-direction: column; gap: 14px; }
+.lede { color: var(--muted); font-size: 1.05rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-family: var(--font-mono); font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+
+.frame { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; padding: 12px; }
+.frame svg { display: block; min-width: 760px; width: 100%; height: auto; }
+svg text { font-family: var(--font-body); fill: var(--fg); font-size: 13px; }
+svg .t-title { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+svg .t-ip { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+svg .t-edge { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+svg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg .box-home { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+svg .box-ext { fill: var(--chip); stroke: var(--line); stroke-width: 1; }
+svg .chip { fill: var(--chip); stroke: none; }
+svg .chip-warn { fill: var(--warn-bg); stroke: var(--warn); stroke-width: 1; }
+svg .chip-bad { fill: var(--bad-bg); stroke: var(--bad); stroke-width: 1; }
+svg .chip-ok { fill: var(--ok-bg); stroke: var(--ok); stroke-width: 1; }
+svg .edge { stroke: var(--fg); stroke-width: 1.6; fill: none; }
+svg .edge-mgmt { stroke: var(--accent); stroke-width: 1.8; fill: none; stroke-dasharray: 6 5; }
+svg .arrowhead { fill: var(--fg); }
+svg .arrowhead-mgmt { fill: var(--accent); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.85rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1px solid; }
+.sw-bad { background: var(--bad-bg); border-color: var(--bad); }
+.sw-warn { background: var(--warn-bg); border-color: var(--warn); }
+.sw-ok { background: var(--ok-bg); border-color: var(--ok); }
+.sw-mgmt { width: 22px; height: 0; border: 0; border-top: 2px dashed var(--accent); border-radius: 0; }
+
+.issues { display: grid; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.issues li { display: grid; grid-template-columns: 78px 1fr; gap: 12px; align-items: baseline; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.issues li > div { min-width: 0; }
+.pill { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 999px; text-align: center; }
+.p-bad { background: var(--bad-bg); color: var(--bad); }
+.p-warn { background: var(--warn-bg); color: var(--warn); }
+.p-ok { background: var(--ok-bg); color: var(--ok); }
+
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 560px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; background: var(--chip); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 0.85rem; white-space: nowrap; }
+.strike { text-decoration: line-through; color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.grid2 > * { min-width: 0; }
+
+.phases { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.phase { display: grid; grid-template-columns: 52px 1fr; gap: 18px; position: relative; padding-bottom: 30px; }
+.phase:not(:last-child)::before { content: ""; position: absolute; left: 25px; top: 46px; bottom: 6px; width: 2px; background: var(--line); }
+.num { width: 52px; height: 46px; border-radius: 8px; background: var(--accent); color: var(--bg); font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; display: grid; place-items: center; }
+.phase-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.phase-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.when { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+.phase ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.outcome { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 0.9rem; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 6px 6px 0; }
+.outcome b { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; padding-top: 2px; }
+.outcome > span { min-width: 0; }
+.note { font-size: 0.9rem; padding: 10px 14px; background: var(--warn-bg); border-radius: 6px; color: var(--fg); }
+
+pre { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.55; }
+pre .c { color: var(--muted); }
+
+.rules { counter-reset: r; list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.rules li { counter-increment: r; display: grid; grid-template-columns: 30px 1fr; gap: 10px; }
+.rules li::before { content: counter(r); font-family: var(--font-mono); font-weight: 500; color: var(--bad); }
+.rules li > span { min-width: 0; }
+
+.questions { display: grid; gap: 8px; padding-left: 20px; margin: 0; }
+
+.p-idle { background: var(--chip); color: var(--muted); }
+.bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--chip); }
+.bar span { display: block; height: 100%; }
+.bar .b-done { background: var(--ok); }
+.bar .b-part { background: var(--warn); }
+.bar-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.85rem; color: var(--muted); }
+.bar-legend b { font-family: var(--font-mono); color: var(--fg); font-weight: 500; }
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.checklist li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: baseline; }
+.checklist li > span:last-child { min-width: 0; }
+.mark { font-family: var(--font-mono); font-weight: 500; }
+.mark.ok { color: var(--ok); }
+.mark.next { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.phase-status td:first-child { font-family: var(--font-mono); font-size: 0.85rem; white-space: nowrap; }
+@media (max-width: 520px) {
+  h1 { font-size: 1.8rem; }
+  .issues li { grid-template-columns: 1fr; gap: 6px; }
+  .issues li .pill { justify-self: start; }
+  .phase { grid-template-columns: 40px 1fr; gap: 12px; }
+  .num { width: 40px; height: 38px; font-size: 1.05rem; }
+  .phase:not(:last-child)::before { left: 19px; top: 38px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Sysadmin / DevOps portfolio project</div>
+  <h1>Homelab Build Plan</h1>
+  <p class="lede">Turn two small VPS servers and a home PC into one lab that's managed as code, monitored, backed up and documented. The VPN chain stays what it is. Everything around it becomes something you can rebuild and explain.</p>
+  <div class="meta">
+    <span class="tag">Server 1 · Moscow · 1 vCPU / 512 MB</span>
+    <span class="tag">Server 2 · Lithuania · 1 vCPU / 1 GB</span>
+    <span class="tag">Home PC · Windows 11 Pro · Hyper-V</span>
+    <span class="tag">~9 weeks part-time</span>
+    <span class="tag">Updated 2026-11-22</span>
+  </div>
+</header>
+
+<section>
+  <div class="eyebrow">Where it stands · 2026-11-22</div>
+  <h2>Progress</h2>
+  <div class="bar" role="img" aria-label="3 of 10 phases done, 2 in progress, 5 not started">
+    <span class="b-done" style="width:30%"></span>
+    <span class="b-part" style="width:20%"></span>
+  </div>
+  <div class="bar-legend">
+    <span><b>3</b> phases done</span>
+    <span><b>2</b> in progress</span>
+    <span><b>5</b> not started</span>
+  </div>
+
+  <div class="tablewrap">
+    <table class="phase-status">
+      <thead><tr><th>Phase</th><th>Status</th><th>Where it is</th></tr></thead>
+      <tbody>
+        <tr><td>0 Inventory</td><td><span class="pill p-ok">Done</span></td><td>Backups of both servers, inventory pages, read-only health-check script</td></tr>
+        <tr><td>1 Quick fixes</td><td><span class="pill p-ok">Done</span></td><td>Cleanup, updates, reboots, SSH and TLS fixes. Firewall on both servers: admin pages tunnel-only.</td></tr>
+        <tr><td>2 Home lab</td><td><span class="pill p-ok">Done</span></td><td>WSL + Ansible, vm-staging, vault and keys. wg-mgmt works: home reaches both servers over 10.99.0.x.</td></tr>
+        <tr><td>3 Ansible</td><td><span class="pill p-warn">Started</span></td><td>5 edge roles (incl. firewall with dead-man switch) live on both servers. Left: xui/adguard/backup roles.</td></tr>
+        <tr><td>4 DNS for Moscow</td><td><span class="pill p-idle">Not started</span></td><td>Design ready (Xray DNS module → DoH via the tunnel)</td></tr>
+        <tr><td>5 Retire wg-easy</td><td><span class="pill p-idle">Not started</span></td><td>Server 2 only. Server 1 never had it, and both already run Xray WireGuard inbounds.</td></tr>
+        <tr><td>6 Monitoring</td><td><span class="pill p-idle">Not started</span></td><td>Node exporter already running on staging and Server 2</td></tr>
+        <tr><td>7 Backups / DR</td><td><span class="pill p-idle">Not started</span></td><td>Manual backup script exists; restic and the DR drill are not done</td></tr>
+        <tr><td>8 CI/CD</td><td><span class="pill p-warn">Started</span></td><td>Lint pipeline written and passing locally. Repo not committed or pushed yet.</td></tr>
+        <tr><td>9 Extras</td><td><span class="pill p-idle">Not started</span></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Found and fixed so far</h3>
+      <ul class="checklist">
+        <li><span class="mark ok">✓</span><span>Portainer (root-level Docker control) was public on Server 2. Removed, along with 4 other leftovers.</span></li>
+        <li><span class="mark ok">✓</span><span>Server 2 accepted SSH passwords for root: Ubuntu's cloud-init file overrode your setting.</span></li>
+        <li><span class="mark ok">✓</span><span>Server 1 had stopped installing security updates: a provider disk change left a GRUB update stuck.</span></li>
+        <li><span class="mark ok">✓</span><span>Disks 86 % → 59 % and 72 % → 36 %; logs capped; both servers on current kernels.</span></li>
+        <li><span class="mark ok">✓</span><span>Plain DNS confirmed closed to the internet; dead apt sources removed.</span></li>
+        <li><span class="mark ok">✓</span><span>4 defects in the Ansible roles caught on staging or right after the first run.</span></li>
+        <li><span class="mark ok">✓</span><span>Both servers managed by Ansible; admin tunnel works home → servers and Server 1 → Server 2.</span></li>
+        <li><span class="mark ok">✓</span><span>TLS fixed: AdGuard's certificate had been expired since March; panels now reload after renewals.</span></li>
+        <li><span class="mark ok">✓</span><span>Firewall on both servers, applied with a 20-minute dead-man switch and disarmed over the tunnel.</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Next up</h3>
+      <ul class="checklist">
+        <li><span class="mark next">→</span><span>Stage B: an always-on home peer (WireGuard for Windows or a vm-ctl VM), then SSH over the tunnel only.</span></li>
+        <li><span class="mark next">→</span><span>First commit (pick a git author identity) and push to GitHub.</span></li>
+        <li><span class="mark next">→</span><span>Delete the dead <code>polandrelay</code> outbound in Server 1's panel.</span></li>
+        <li><span class="mark next">→</span><span>2026-11-28: remove the xray-server2 fallback image and volumes.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Where you are now</div>
+  <h2>Current setup</h2>
+  <div class="frame">
+    <svg viewBox="0 0 960 420" role="img" aria-label="Current setup: WG clients connect to Server 1 in Moscow, which sends some traffic directly to the internet and the rest over vless to Server 2 in Lithuania. Server 2 also serves its own WG and vless clients and runs AdGuard.">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker>
+      </defs>
+      <!-- clients -->
+      <rect class="box-ext" x="20" y="62" width="160" height="56" rx="8"/>
+      <text x="100" y="86" text-anchor="middle">WG clients</text>
+      <text x="100" y="104" text-anchor="middle" class="t-ip">Moscow configs</text>
+      <rect class="box-ext" x="20" y="302" width="160" height="56" rx="8"/>
+      <text x="100" y="326" text-anchor="middle">Direct clients</text>
+      <text x="100" y="344" text-anchor="middle" class="t-ip">WG + vless to LT</text>
+      <!-- internet -->
+      <rect class="box-ext" x="560" y="28" width="180" height="50" rx="8"/>
+      <text x="650" y="58" text-anchor="middle">Internet · direct from MSK</text>
+      <rect class="box-ext" x="760" y="28" width="180" height="50" rx="8"/>
+      <text x="850" y="58" text-anchor="middle">Internet · exit in LT</text>
+      <!-- server 1 -->
+      <rect class="box" x="230" y="28" width="280" height="206" rx="10"/>
+      <text x="246" y="52" class="t-title">Server 1 · Moscow · 512 MB</text>
+      <rect class="chip-warn" x="242" y="66" width="256" height="30" rx="5"/><text x="254" y="86">Docker idle, 0 containers</text>
+      <rect class="chip" x="242" y="104" width="256" height="30" rx="5"/><text x="254" y="124">Xray · split routing · zapret</text>
+      <rect class="chip-bad" x="242" y="142" width="256" height="30" rx="5"/><text x="254" y="162">Panel public · odd port + path</text>
+      <rect class="chip-warn" x="242" y="180" width="256" height="30" rx="5"/><text x="254" y="200">SSH as root · key only</text>
+      <!-- server 2 -->
+      <rect class="box" x="600" y="164" width="300" height="240" rx="10"/>
+      <text x="616" y="188" class="t-title">Server 2 · Lithuania · 1 GB</text>
+      <rect class="chip" x="612" y="202" width="276" height="30" rx="5"/><text x="624" y="222">3x-ui / Xray · exit node</text>
+      <rect class="chip-warn" x="612" y="240" width="276" height="30" rx="5"/><text x="624" y="260">wg-easy (Docker) :51820 · to remove</text>
+      <rect class="chip-ok" x="612" y="278" width="276" height="30" rx="5"/><text x="624" y="298">AdGuard · DoH :3452</text>
+      <rect class="chip-warn" x="612" y="316" width="276" height="30" rx="5"/><text x="624" y="336">AdGuard still bound to :53</text>
+      <rect class="chip-bad" x="612" y="354" width="276" height="30" rx="5"/><text x="624" y="374">Portainer + admin UIs public</text>
+      <!-- edges -->
+      <path class="edge" d="M180,90 L228,90" marker-end="url(#a1)"/>
+      <path class="edge" d="M510,70 L558,56" marker-end="url(#a1)"/>
+      <path class="edge" d="M510,150 C560,150 560,210 598,214" marker-end="url(#a1)"/>
+      <text x="520" y="186" class="t-edge">vless</text>
+      <path class="edge" d="M180,330 L598,330" marker-end="url(#a1)"/>
+      <path class="edge" d="M850,164 L850,80" marker-end="url(#a1)"/>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><i class="sw sw-bad"></i>Fix first</span>
+    <span><i class="sw sw-warn"></i>Change during the project</span>
+    <span><i class="sw sw-ok"></i>Already good</span>
+  </div>
+
+  <h3>What needs attention</h3>
+  <ul class="issues">
+    <li><span class="pill p-bad">High</span><div>Portainer is public on Server 2 (ports 9443 and 8000). Portainer controls Docker, which means root on the host. The AdGuard, wg-easy and homer web UIs are public too.</div></li>
+    <li><span class="pill p-bad">High</span><div>Both 3x-ui panels are reachable from the internet. The odd port and random path only hide them. Scanners still find the port, and a bug in the login page would expose the whole server.</div></li>
+    <li><span class="pill p-warn">Medium</span><div>No firewall policy you can point to, and no automatic security updates. Nothing written down says which ports should be open.</div></li>
+    <li><span class="pill p-warn">Medium</span><div>No backups. If a provider loses a server, every client config and routing rule in <code>x-ui.db</code> is gone.</div></li>
+    <li><span class="pill p-warn">Medium</span><div>Moscow WG users don't get AdGuard filtering. Only Server 2's own WG clients use it, through the Docker-local address.</div></li>
+    <li><span class="pill p-warn">Medium</span><div>Docker runs on Server 1 with no containers, using RAM on the smallest server for nothing.</div></li>
+    <li><span class="pill p-warn">Medium</span><div>Disks are 72 % (Server 1) and 86 % (Server 2) full, and Server 2 is already using swap.</div></li>
+    <li><span class="pill p-ok">Good</span><div>SSH accepts keys only. Plain DNS no longer answers from outside (checked 2026-11-21). Moscow WireGuard users already run on Xray's own WireGuard inbounds.</div></li>
+  </ul>
+</section>
+
+<section>
+  <div class="eyebrow">Where you're going</div>
+  <h2>Target architecture</h2>
+  <p>The servers keep only the VPN and tiny agents. Everything heavy runs at home in Hyper-V and reaches the servers over a separate management WireGuard network. Admin access (SSH, panels, metrics) never touches the public internet.</p>
+  <div class="frame">
+    <svg viewBox="0 0 960 520" role="img" aria-label="Target architecture: a Hyper-V home lab with control, monitoring and staging VMs connects to both servers over a dashed management WireGuard network. Server 1 runs only Xray with a DNS module and node exporter. Server 2 runs Xray, AdGuard over DoH, exporters and backups. Public status page goes through a Cloudflare tunnel; backups go offsite.">
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead-mgmt"/></marker>
+      </defs>
+      <!-- home lab -->
+      <rect class="box-home" x="20" y="20" width="300" height="270" rx="10"/>
+      <text x="36" y="44" class="t-title">Home lab · Hyper-V on your PC</text>
+      <text x="36" y="62" class="t-ip">mgmt 10.99.0.1</text>
+      <rect class="chip" x="32" y="74" width="276" height="30" rx="5"/><text x="44" y="94">vm-ctl · Ansible, Gitea, CI runner</text>
+      <rect class="chip" x="32" y="112" width="276" height="30" rx="5"/><text x="44" y="132">vm-mon · Prometheus, Grafana</text>
+      <rect class="chip" x="32" y="150" width="276" height="30" rx="5"/><text x="44" y="170">vm-mon · Alertmanager, Kuma, Loki</text>
+      <rect class="chip" x="32" y="188" width="276" height="30" rx="5"/><text x="44" y="208">vm-staging · copy of a VPS</text>
+      <rect class="chip" x="32" y="226" width="276" height="30" rx="5"/><text x="44" y="246">Later · k3s ×3 + ArgoCD</text>
+      <rect class="box-ext" x="20" y="330" width="300" height="48" rx="8"/>
+      <text x="170" y="359" text-anchor="middle">Cloudflare Tunnel → status.yourdomain</text>
+      <rect class="box-ext" x="20" y="420" width="300" height="48" rx="8"/>
+      <text x="170" y="449" text-anchor="middle">Offsite backup · S3 / B2 bucket</text>
+      <!-- server 1 -->
+      <rect class="box" x="400" y="20" width="260" height="200" rx="10"/>
+      <text x="414" y="44" class="t-title">Server 1 · Moscow</text>
+      <text x="414" y="62" class="t-ip">mgmt 10.99.0.11</text>
+      <rect class="chip" x="412" y="74" width="236" height="30" rx="5"/><text x="424" y="94">Xray · WG + vless inbounds</text>
+      <rect class="chip-ok" x="412" y="112" width="236" height="30" rx="5"/><text x="424" y="132">DNS module → DoH via tunnel</text>
+      <rect class="chip" x="412" y="150" width="236" height="30" rx="5"/><text x="424" y="170">node_exporter</text>
+      <rect class="chip-ok" x="412" y="188" width="236" height="22" rx="5"/><text x="424" y="204" style="font-size:12px">Panel + SSH on mgmt only</text>
+      <!-- server 2 -->
+      <rect class="box" x="400" y="270" width="260" height="236" rx="10"/>
+      <text x="414" y="294" class="t-title">Server 2 · Lithuania</text>
+      <text x="414" y="312" class="t-ip">mgmt 10.99.0.12</text>
+      <rect class="chip" x="412" y="324" width="236" height="30" rx="5"/><text x="424" y="344">Xray · exit + WG inbound</text>
+      <rect class="chip-ok" x="412" y="362" width="236" height="30" rx="5"/><text x="424" y="382">AdGuard · DoH + ClientIDs</text>
+      <rect class="chip" x="412" y="400" width="236" height="30" rx="5"/><text x="424" y="420">node_exporter · Xray stats</text>
+      <rect class="chip" x="412" y="438" width="236" height="26" rx="5"/><text x="424" y="456">restic nightly backup</text>
+      <rect class="chip-ok" x="412" y="472" width="236" height="24" rx="5"/><text x="424" y="489" style="font-size:12px">Panel + SSH on mgmt only</text>
+      <!-- right column -->
+      <rect class="box-ext" x="740" y="30" width="200" height="50" rx="8"/>
+      <text x="840" y="60" text-anchor="middle">Moscow users (WG)</text>
+      <rect class="box-ext" x="740" y="140" width="200" height="50" rx="8"/>
+      <text x="840" y="170" text-anchor="middle">Internet · direct</text>
+      <rect class="box-ext" x="740" y="290" width="200" height="50" rx="8"/>
+      <text x="840" y="320" text-anchor="middle">Direct users (WG / vless)</text>
+      <rect class="box-ext" x="740" y="400" width="200" height="50" rx="8"/>
+      <text x="840" y="430" text-anchor="middle">Internet · exit</text>
+      <!-- data edges -->
+      <path class="edge" d="M740,55 L662,62" marker-end="url(#a2)"/>
+      <path class="edge" d="M660,165 L738,165" marker-end="url(#a2)"/>
+      <path class="edge" d="M740,315 L662,318" marker-end="url(#a2)"/>
+      <path class="edge" d="M660,425 L738,425" marker-end="url(#a2)"/>
+      <path class="edge" d="M530,220 L530,268" marker-end="url(#a2)"/>
+      <text x="540" y="250" class="t-edge">vless (+ DoH)</text>
+      <path class="edge" d="M170,290 L170,328" marker-end="url(#a2)"/>
+      <path class="edge" d="M400,470 C360,470 360,444 322,444" marker-end="url(#a2)"/>
+      <!-- mgmt edges -->
+      <path class="edge-mgmt" d="M320,110 L398,110" marker-end="url(#a3)"/>
+      <path class="edge-mgmt" d="M320,240 C360,240 360,330 398,330" marker-end="url(#a3)"/>
+      <text x="326" y="100" class="t-edge" style="fill:var(--accent)">mgmt</text>
+      <text x="326" y="232" class="t-edge" style="fill:var(--accent)">mgmt</text>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><i class="sw sw-mgmt"></i>Management WireGuard 10.99.0.0/24 (admin, metrics, deploys)</span>
+    <span><i class="sw sw-ok"></i>New or fixed</span>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Reference</div>
+  <h2>Addresses, ports and memory</h2>
+  <div class="grid2">
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Network</th><th>Range</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td>Management</td><td class="num">10.99.0.0/24</td><td>SSH, panels, metrics, Ansible</td></tr>
+          <tr><td>Home</td><td class="num">10.99.0.1</td><td>vm-ctl (WG client, keepalive)</td></tr>
+          <tr><td>Server 1</td><td class="num">10.99.0.11</td><td>wg-mgmt interface</td></tr>
+          <tr><td>Server 2</td><td class="num">10.99.0.12</td><td>wg-mgmt interface</td></tr>
+          <tr><td>Staging VM</td><td class="num">10.99.0.21</td><td>test target for roles</td></tr>
+          <tr><td>User VPN</td><td class="num">10.66.0.0/16</td><td>Xray WG inbound clients</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Server</th><th>Open to internet</th><th>Mgmt only</th></tr></thead>
+        <tbody>
+          <tr><td>Server 1</td><td>Xray inbounds (tcp), WG inbound (udp), wg-mgmt (udp)</td><td>SSH, panel, node_exporter</td></tr>
+          <tr><td>Server 2</td><td>Xray inbounds (tcp), WG inbound (udp), DoH 3452 (tcp+udp), wg-mgmt (udp)</td><td>SSH, panel, exporters, AdGuard UI</td></tr>
+          <tr><td>Both</td><td colspan="2">Everything else dropped by default, including 53.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>Server 1 memory budget</h3>
+  <p>512 MB is tight. These are rough figures. Measure your own with <code>free -m</code> and <code>ps -eo rss,comm --sort=-rss | head</code>.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Component</th><th>Now</th><th>Target</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Kernel, systemd, sshd</td><td class="num">~100 MB</td><td class="num">~100 MB</td><td>Fixed cost</td></tr>
+        <tr><td>Xray core</td><td class="num">30–80 MB</td><td class="num">30–80 MB</td><td>Grows with users and geosite files</td></tr>
+        <tr><td>3x-ui panel</td><td class="num">30–50 MB</td><td class="num">30–50 MB</td><td></td></tr>
+        <tr><td>Docker (idle, no containers)</td><td class="num">60–100 MB</td><td class="num strike">0</td><td>Remove in phase 1</td></tr>
+        <tr><td>wg-mgmt (kernel WireGuard)</td><td class="num">–</td><td class="num">~0 MB</td><td>Runs in the kernel</td></tr>
+        <tr><td>node_exporter</td><td class="num">–</td><td class="num">~15 MB</td><td></td></tr>
+        <tr><td>Swap file</td><td class="num">1 GB</td><td class="num">1 GB</td><td>Already present, so no zram needed</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Roadmap</div>
+  <h2>Phases, in order</h2>
+  <p>Each phase leaves the servers working. Don't start the next phase until the "done when" check passes.</p>
+
+  <ol class="phases">
+    <li class="phase"><div class="num">0</div><div class="phase-body">
+      <div class="phase-head"><h3>Inventory and safety net</h3><span class="when">day 1</span><span class="pill p-ok">Done</span></div>
+      <ul>
+        <li>On both servers, save <code>cat /etc/os-release</code>, <code>free -m</code>, <code>ss -tlnp</code>, <code>ss -ulnp</code> into <code>docs/inventory/</code>. Remove IPs before anything goes public.</li>
+        <li>Copy to your PC: <code>/etc/x-ui/x-ui.db</code>, <code>AdGuardHome.yaml</code>, and the wg-easy data folder or volume.</li>
+        <li>Check that the provider's web console (VNC) works for both servers. That's your way back in if SSH breaks.</li>
+        <li>Take a provider snapshot if your plan has one.</li>
+        <li>From your PC, test port 53: <code>Resolve-DnsName example.com -Server &lt;IP&gt; -DnsOnly</code>.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>You could restore every VPN client from files on your PC.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">1</div><div class="phase-body">
+      <div class="phase-head"><h3>Quick security fixes, by hand</h3><span class="when">week 1</span><span class="pill p-ok">Done</span></div>
+      <ul>
+        <li>Update 3x-ui to the latest release on both servers.</li>
+        <li>Firewall with default deny (nftables or ufw). Allow only the ports in the table above, plus SSH for now.</li>
+        <li>AdGuard: set its DNS listener to <code>127.0.0.1</code> and the Docker bridge only. Turn on ClientIDs and "Allowed clients" for DoH.</li>
+        <li>Make sure wg-easy's web UI (usually tcp 51821) isn't reachable from outside.</li>
+        <li><code>unattended-upgrades</code> on both. Add zram swap on Server 1.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span><code>nmap</code> from home shows only the planned ports.</span><b>Portfolio</b><span>AdGuard open-resolver postmortem, plus before/after scan output.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">2</div><div class="phase-body">
+      <div class="phase-head"><h3>Home lab base and management network</h3><span class="when">week 2</span><span class="pill p-ok">Done</span></div>
+      <ul>
+        <li>Turn on Hyper-V and create an external virtual switch.</li>
+        <li>VMs: <code>vm-ctl</code> (Debian 12, 2 GB), <code>vm-mon</code> (Debian 12, 2–3 GB), <code>vm-staging</code> (same OS as the VPSes, 512 MB to mimic Server 1).</li>
+        <li>Create a private Git repo. A cleaned public copy comes later.</li>
+        <li>Kernel WireGuard <code>wg-mgmt</code> on both servers. vm-ctl connects to both with <code>PersistentKeepalive = 25</code> (home is behind NAT).</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>From vm-ctl you can SSH to 10.99.0.11 and 10.99.0.12.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">3</div><div class="phase-body">
+      <div class="phase-head"><h3>Everything in Ansible</h3><span class="when">weeks 3–4</span><span class="pill p-warn">Started</span></div>
+      <ul>
+        <li>Roles: <code>common</code>, <code>hardening</code>, <code>firewall</code>, <code>wg_mgmt</code>, <code>xui</code>, <code>adguard</code>, <code>node_exporter</code>, <code>backup</code>.</li>
+        <li><code>hardening</code>: a sudo user, <code>PermitRootLogin no</code>, SSH listening on the mgmt IP only.</li>
+        <li><code>firewall</code>: an nftables template generated from the port table in variables.</li>
+        <li><code>xui</code>: installs a pinned 3x-ui version and restores <code>x-ui.db</code> from a backup.</li>
+        <li>Secrets (UUIDs, Reality keys, WG keys) go in Ansible Vault.</li>
+        <li>Run every role on vm-staging first, and only then on the real servers.</li>
+      </ul>
+      <div class="note">The step that moves SSH and the panel to mgmt-only is the one most likely to lock you out. Do it with the provider console open and a second SSH session still connected.</div>
+      <div class="outcome"><b>Done when</b><span>One <code>ansible-playbook site.yml</code> turns a fresh staging VM into a working copy of Server 2.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">4</div><div class="phase-body">
+      <div class="phase-head"><h3>AdGuard for Moscow users</h3><span class="when">week 4</span><span class="pill p-idle">Not started</span></div>
+      <ul>
+        <li>Xray DNS module on Server 1, pointing at <code>https://dns.yourdomain:3452/dns-query/srv1-moscow</code>, with a <code>hosts</code> entry so the name resolves without DNS.</li>
+        <li>A routing rule sends the DNS module's own traffic through the vless outbound to Server 2.</li>
+        <li>A rule <code>port 53 → dns-out</code> for the WG inbound, placed above the <code>geoip:private</code> block.</li>
+        <li>If Russian sites get slow, send Russian domains to a local resolver as a split.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>Queries from a Moscow WG client show up in AdGuard's log as <code>srv1-moscow</code>, and ads are blocked.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">5</div><div class="phase-body">
+      <div class="phase-head"><h3>Retire wg-easy</h3><span class="when">weeks 5–6</span><span class="pill p-idle">Not started</span></div>
+      <ul>
+        <li>On staging, add a 3x-ui WireGuard inbound and benchmark it against wg-easy with <code>iperf3</code>: throughput, CPU, latency.</li>
+        <li>Server 2 first. Create the new peers, move users in batches, and keep wg-easy running as a rollback for one week.</li>
+        <li>Server 1 never had wg-easy (its users already use Xray's WireGuard inbounds), and its unused Docker was removed on 2026-11-22.</li>
+        <li>Write the runbook and the rollback steps as you go.</li>
+      </ul>
+      <div class="note">If Xray's WireGuard turns out too slow on 1 vCPU, use plain kernel WireGuard managed by Ansible instead. Record the numbers and the decision in an ADR. It's a good interview story either way.</div>
+      <div class="outcome"><b>Done when</b><span>Docker is gone from Server 1, every user is on the new setup, and the benchmark table is in <code>docs/</code>.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">6</div><div class="phase-body">
+      <div class="phase-head"><h3>Monitoring and alerts</h3><span class="when">week 7</span><span class="pill p-idle">Not started</span></div>
+      <ul>
+        <li>Prometheus on vm-mon scrapes node_exporter and Xray stats over the mgmt network.</li>
+        <li>Blackbox probes run from each server against a list of domains, so you can see what's reachable from Moscow versus Lithuania.</li>
+        <li>Grafana: one dashboard per server, traffic per hop, traffic per user.</li>
+        <li>Alertmanager → Telegram bot: server down, tunnel down, disk over 85%, memory over 90%, DoH certificate expiring.</li>
+        <li>Uptime Kuma status page published at <code>status.yourdomain</code> through a Cloudflare Tunnel. No open ports at home.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>Stopping Xray on staging sends you a Telegram alert within 2 minutes.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">7</div><div class="phase-body">
+      <div class="phase-head"><h3>Backups and disaster recovery</h3><span class="when">week 8</span><span class="pill p-idle">Not started</span></div>
+      <ul>
+        <li>Nightly restic backup of <code>x-ui.db</code>, the AdGuard config and <code>/etc/wireguard</code> to home and to an offsite bucket, with a retention policy.</li>
+        <li>Restore test every month, on staging.</li>
+        <li>DR drill: reinstall Server 1 from the provider panel, run Ansible, restore, and time it. Record your screen.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>You have a measured recovery time, e.g. "Server 1 rebuilt in 14 minutes".</span><b>Portfolio</b><span>The DR video and the runbook.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">8</div><div class="phase-body">
+      <div class="phase-head"><h3>CI/CD for the infrastructure</h3><span class="when">week 9</span><span class="pill p-warn">Started</span></div>
+      <ul>
+        <li>Gitea Actions on vm-ctl (or GitHub with a self-hosted runner inside the mgmt network).</li>
+        <li>On every pull request: <code>yamllint</code>, <code>ansible-lint</code>, Molecule tests, and <code>ansible-playbook --check --diff</code>.</li>
+        <li>On merge to main: apply to staging, then to production.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>A firewall change goes from pull request to both servers with no manual SSH.</span></div>
+    </div></li>
+
+    <li class="phase"><div class="num">9</div><div class="phase-body">
+      <div class="phase-head"><h3>Extras, once the core is solid</h3><span class="when">ongoing</span><span class="pill p-idle">Not started</span></div>
+      <ul>
+        <li>k3s with 3 nodes plus ArgoCD at home. Deploy a small app of your own through GitOps, e.g. a page that shows users their traffic from the Xray stats API.</li>
+        <li>Loki and Promtail for central logs from both servers.</li>
+        <li>Authentik SSO in front of Grafana and Gitea.</li>
+        <li>Packer or Terraform to build the Hyper-V VMs from code.</li>
+      </ul>
+    </div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="eyebrow">Repository</div>
+  <h2>Repo layout</h2>
+<pre>homelab/
+├── README.md                 <span class="c"># diagram, stack, how to rebuild</span>
+├── docs/
+│   ├── architecture.md
+│   ├── adr/                  <span class="c"># 001-mgmt-overlay.md, 002-xray-wg-vs-kernel-wg.md …</span>
+│   ├── runbooks/             <span class="c"># migrate-wg-easy.md, restore-server.md, rotate-keys.md</span>
+│   ├── postmortems/          <span class="c"># 2026-adguard-open-resolver.md</span>
+│   └── inventory/
+├── ansible/
+│   ├── inventory/hosts.yml
+│   ├── group_vars/all/vault.yml   <span class="c"># encrypted</span>
+│   ├── roles/                <span class="c"># common, hardening, firewall, wg_mgmt, xui, adguard, …</span>
+│   └── site.yml
+├── monitoring/
+│   ├── prometheus/  alertmanager/  grafana/dashboards/
+├── homelab-vms/              <span class="c"># Hyper-V scripts → later Packer/Terraform</span>
+└── .gitea/workflows/ci.yml</pre>
+</section>
+
+<section>
+  <div class="eyebrow">Ground rules</div>
+  <h2>How not to lock yourself out</h2>
+  <ol class="rules">
+    <li><span>Before any SSH or firewall change, keep a second session open and check that the provider console works.</span></li>
+    <li><span>Every change runs on vm-staging first.</span></li>
+    <li><span>Commit before you apply, so there's always a known-good version to go back to.</span></li>
+    <li><span>Keep wg-easy running until the replacement has run for a week with no complaints.</span></li>
+    <li><span>Secrets live only in Vault. The public repo has no real IPs, UUIDs, keys, domain or client names.</span></li>
+  </ol>
+</section>
+
+<section>
+  <div class="eyebrow">Still needed</div>
+  <h2>Open questions</h2>
+  <ul class="questions">
+    <li>OS and version on each server (<code>cat /etc/os-release</code>).</li>
+    <li>RAM and CPU of your PC. The plan assumes 6–8 GB can go to VMs.</li>
+    <li>Server 1's Xray config with secrets replaced by placeholders, to write the exact DNS changes.</li>
+    <li>How Moscow WG traffic reaches Xray today: wg-easy plus a redirect, or a WireGuard inbound inside 3x-ui.</li>
+    <li>Whether each provider offers snapshots and a web console.</li>
+  </ul>
+</section>
+
+</div>

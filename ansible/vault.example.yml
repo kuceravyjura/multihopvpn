@@ -1,0 +1,16 @@
+---
+# Template for group_vars/all/vault.yml. Copy it, fill in real values, then encrypt:
+#   cp vault.example.yml group_vars/all/vault.yml
+#   ansible-vault encrypt group_vars/all/vault.yml
+# CI refuses to pass if vault.yml is committed unencrypted.
+
+vault_s1_public_ip: "203.0.113.11"
+vault_s2_public_ip: "203.0.113.12"
+
+# One private key per host: wg genkey | tee priv | wg pubkey > pub
+# The matching public keys go in host_vars/<host>.yml (they are not secret).
+vault_wg_mgmt_private_keys:
+  s1-msk: "TODO"
+  s2-lt: "TODO"
+  vm-staging: "TODO"
+  vm-ctl: "TODO"

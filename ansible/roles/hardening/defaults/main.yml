@@ -1,0 +1,7 @@
+---
+admin_user: ops
+admin_ssh_public_keys: []
+admin_sudo_nopasswd: true   # key-only account has no password to type
+
+# Change to "no" only after you have logged in as admin_user with your key.
+ssh_permit_root_login: prohibit-password

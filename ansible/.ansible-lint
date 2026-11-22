@@ -1,0 +1,10 @@
+---
+profile: moderate
+skip_list:
+  # Shared settings (admin_user, ssh_port, node_exporter_port, wg_mgmt_*) are used by several
+  # roles and set once in group_vars, so they deliberately carry no single role's prefix.
+  - var-naming[no-role-prefix]
+exclude_paths:
+  - collections/
+  - vault.example.yml
+  - group_vars/all/vault.yml

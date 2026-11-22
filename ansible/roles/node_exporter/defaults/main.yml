@@ -1,0 +1,4 @@
+---
+node_exporter_port: 9100
+# Bound to the management address, so metrics are never public even without a firewall.
+node_exporter_listen: "{{ wg_mgmt_ip }}:{{ node_exporter_port }}"

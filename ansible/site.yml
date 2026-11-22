@@ -1,0 +1,29 @@
+---
+# Usage (always one host at a time, staging first):
+#   ansible-playbook site.yml -l vm-staging --ask-vault-pass
+#   ansible-playbook site.yml -l s2-lt --check --diff --ask-vault-pass
+#   ansible-playbook site.yml -l s2-lt --ask-vault-pass
+
+- name: Edge servers (VPS and staging copy)
+  hosts: edge
+  become: true
+  roles:
+    - role: common
+      tags: [common]
+    - role: hardening
+      tags: [hardening]
+    - role: wg_mgmt
+      tags: [wg_mgmt]
+    - role: firewall
+      tags: [firewall]
+    - role: node_exporter
+      tags: [node_exporter]
+
+- name: Home control node
+  hosts: home
+  become: true
+  roles:
+    - role: common
+      tags: [common]
+    - role: wg_mgmt
+      tags: [wg_mgmt]

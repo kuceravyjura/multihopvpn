@@ -1,0 +1,19 @@
+---
+# Shared settings. Secrets go in vault.yml next to this file (encrypted), never here.
+
+# Bootstrap connects as root. After the hardening role has run and you have
+# logged in as admin_user, change this to "{{ admin_user }}".
+ansible_user: root
+
+admin_user: ops
+# OpenSSH format (ssh-ed25519 AAAA...). Drop the comment part if it holds your email.
+admin_ssh_public_keys:
+  - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJRGu1eDVcG4K+PcF6MzsHBYiH9sE93eICqRpu9vGVil"
+
+ssh_port: 22
+
+# Management WireGuard
+wg_mgmt_interface: wg-mgmt
+wg_mgmt_port: 51900
+wg_mgmt_prefix: 24
+wg_mgmt_private_key: "{{ vault_wg_mgmt_private_keys[inventory_hostname] }}"

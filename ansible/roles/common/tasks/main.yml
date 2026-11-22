@@ -1,0 +1,137 @@
+---
+- name: Check that this is a Debian-family system
+  ansible.builtin.assert:
+    that: ansible_facts['os_family'] == 'Debian'
+    fail_msg: "These roles use apt (Debian/Ubuntu). Found {{ ansible_facts['distribution'] }}."
+    quiet: true
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    install_recommends: false
+
+- name: Enable unattended security upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      // Managed by Ansible (role: common)
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create journald drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Cap journald disk usage
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/10-homelab.conf
+    content: |
+      # Managed by Ansible (role: common)
+      [Journal]
+      SystemMaxUse={{ journald_max_use }}
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart journald
+
+- name: Load the BBR congestion control module at boot
+  when: common_bbr_enabled
+  block:
+    - name: Persist tcp_bbr module
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/homelab-bbr.conf
+        content: "tcp_bbr\n"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Load tcp_bbr now
+      community.general.modprobe:
+        name: tcp_bbr
+        state: present
+
+    - name: Use fq + BBR
+      ansible.posix.sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        sysctl_file: /etc/sysctl.d/60-homelab.conf
+        reload: true
+      loop:
+        - { name: net.core.default_qdisc, value: fq }
+        - { name: net.ipv4.tcp_congestion_control, value: bbr }
+
+- name: Enable IPv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_file: /etc/sysctl.d/60-homelab.conf
+    reload: true
+  when: common_ip_forward
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+  when: common_disable_services | length > 0
+
+- name: Stop and disable services a VPS doesn't need
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop: "{{ common_disable_services }}"
+  when: (item ~ '.service') in ansible_facts.services
+
+- name: Check for the zram kernel module
+  ansible.builtin.command: modinfo zram
+  register: _common_zram_mod
+  changed_when: false
+  failed_when: false
+  check_mode: false   # read-only, so it runs in --check too
+  when: zram_enabled
+
+- name: Configure zram swap
+  when: zram_enabled and _common_zram_mod.rc == 0
+  block:
+    - name: Install zram-tools
+      ansible.builtin.apt:
+        name: zram-tools
+        state: present
+        install_recommends: false
+
+    - name: Write zramswap settings
+      ansible.builtin.copy:
+        dest: /etc/default/zramswap
+        content: |
+          # Managed by Ansible (role: common)
+          ALGO={{ zram_algo }}
+          SIZE={{ zram_size_mb }}
+          PRIORITY=100
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart zramswap
+
+    - name: Enable zramswap
+      ansible.builtin.service:
+        name: zramswap
+        enabled: true
+        state: started
+      # In --check the package is never really installed, so the unit can't exist yet.
+      ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Warn when zram is not available on this kernel
+  ansible.builtin.debug:
+    msg: >-
+      zram module not found (common on OpenVZ/LXC VPS). Skipped zram.
+      Consider a small swap file instead.
+  when: zram_enabled and _common_zram_mod.rc != 0

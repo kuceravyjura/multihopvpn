@@ -1,0 +1,55 @@
+---
+# Server 2 · Lithuania · Ubuntu 24.04 · 1 vCPU / 1 GB
+# Ports from the 2026-11-21 inventory (docs/inventory/s2-lt.md).
+
+wg_mgmt_ip: 10.99.0.12
+wg_mgmt_endpoint: "{{ vault_s2_public_ip }}:{{ wg_mgmt_port }}"
+wg_mgmt_public_key: "fAIEK4OQy+cTdUTWSL/8ijL+tH8h2JWOyCNhcE+y00Y="
+
+common_ip_forward: true            # wg-easy (Docker). false after it is retired.
+
+# Helpers from the Ubuntu image that a VPS doesn't use (~30-50 MB RAM together).
+common_disable_services:
+  - ModemManager
+  - multipathd
+  - udisks2
+  - upower
+
+# Stage A (2026-11-22): firewall on, SSH still public. Ports re-checked against live listeners.
+firewall_enabled: true
+firewall_ssh_public: true          # false only after SSH over wg-mgmt works
+firewall_public_tcp:
+  - 80      # nginx decoy site (+ certificate renewal)
+  - 443     # nginx decoy site: makes the server look like an ordinary web host
+  - 853     # AdGuard DNS-over-TLS
+  - 1111    # vless + Reality (xhttp), hop from Server 1
+  - 3452    # AdGuard DNS-over-HTTPS
+  - 8443    # vless + Reality (tcp)
+firewall_public_udp:
+  - 3452    # DoH over HTTP/3
+  - 51820   # wg-easy (until retired)
+  - 12580   # Xray WireGuard inbounds from here down
+  - 26683
+  - 30547
+  - 31737
+  - 38311
+  - 44841
+  - 56539
+  - 57158
+firewall_mgmt_tcp:
+  - 3000    # AdGuard web UI
+  - 6903    # 3x-ui panel
+  - 2096    # 3x-ui subscriptions: not used by clients
+
+# Published by Docker: they bypass the input chain, so they are filtered in forward.
+# (portainer 8000/9443 and homer 8080 were removed on 2026-11-21)
+firewall_docker_mgmt_ports:
+  - 51821   # wg-easy UI
+
+firewall_extra_rules:
+  # wg-easy clients query AdGuard through the Docker bridge.
+  - 'iifname "docker0" meta l4proto { tcp, udp } th dport 53 accept'
+  - 'iifname "br-*" meta l4proto { tcp, udp } th dport 53 accept'
+  # The two 3x-ui panels are linked as nodes: Server 1's panel polls this panel on 6903
+  # over the internet. Allow exactly that source, so the node sync keeps working.
+  - 'ip saddr {{ vault_s1_public_ip }} tcp dport 6903 accept'

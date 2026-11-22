@@ -1,0 +1,27 @@
+---
+firewall_enabled: false
+
+# Public SSH stays open until SSH over wg-mgmt is proven to work.
+firewall_ssh_public: true
+
+firewall_public_tcp: []
+firewall_public_udp: []
+# Reachable only through the wg-mgmt interface. SSH and node_exporter are always added.
+firewall_mgmt_tcp: []
+# Ports published by Docker (-p). Docker DNATs them, so they pass the forward hook and
+# never reach the input chain. Listed ports are dropped unless they arrive over wg-mgmt.
+firewall_docker_mgmt_ports: []
+# Raw nft rules for the input chain, e.g. Docker bridge -> host DNS.
+firewall_extra_rules: []
+
+firewall_log_drops: false
+# If Ansible cannot reconnect after a change, the new rules are removed after this many seconds.
+firewall_rollback_seconds: 120
+
+# Dead-man switch: after any rule change, the firewall unlocks itself after this many minutes
+# unless disarmed with `homelab-fw-disarm` (run it over wg-mgmt). Survives reboots. 0 = off.
+firewall_deadman_minutes: 20
+# Arm (and reload) even when the rules didn't change. For tests: -e firewall_deadman_force=true
+firewall_deadman_force: false
+
+node_exporter_port: 9100

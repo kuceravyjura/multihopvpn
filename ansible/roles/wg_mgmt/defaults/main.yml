@@ -1,0 +1,6 @@
+---
+wg_mgmt_interface: wg-mgmt
+wg_mgmt_port: 51900
+wg_mgmt_prefix: 24
+wg_mgmt_behind_nat: false
+wg_mgmt_keepalive: 25

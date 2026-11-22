@@ -1,0 +1,8 @@
+---
+# "reload" runs `wg syncconf`: peers change without dropping the tunnel
+# Ansible may be connected through. An Address change needs a manual restart.
+- name: Reload wg-mgmt
+  ansible.builtin.service:
+    name: "wg-quick@{{ wg_mgmt_interface }}"
+    state: reloaded
+  ignore_errors: "{{ ansible_check_mode }}"

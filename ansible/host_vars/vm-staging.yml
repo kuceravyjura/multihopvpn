@@ -1,0 +1,17 @@
+---
+# Hyper-V VM that imitates Server 1 (give it 512 MB RAM, same OS version).
+# Every role runs here before it touches a real server.
+
+wg_mgmt_ip: 10.99.0.21
+wg_mgmt_endpoint: "{{ ansible_host }}:{{ wg_mgmt_port }}"
+wg_mgmt_public_key: "/HRFPWKKACuD0TVat04yedF8qtZym7+1Zsfv1QZM020="
+
+zram_enabled: true
+zram_size_mb: 256
+common_ip_forward: false
+
+firewall_enabled: true
+firewall_ssh_public: true
+firewall_public_tcp: [443]
+firewall_public_udp: []
+firewall_mgmt_tcp: [2053]

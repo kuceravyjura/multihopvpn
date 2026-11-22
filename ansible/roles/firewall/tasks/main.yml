@@ -1,0 +1,9 @@
+---
+- name: Apply the firewall
+  ansible.builtin.include_tasks: apply.yml
+  when: firewall_enabled
+
+- name: Report that the firewall is off for this host
+  ansible.builtin.debug:
+    msg: "firewall_enabled is false for {{ inventory_hostname }}; no rules changed."
+  when: not firewall_enabled

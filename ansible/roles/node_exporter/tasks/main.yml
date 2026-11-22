@@ -1,0 +1,49 @@
+---
+- name: Install node exporter
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+    install_recommends: false
+
+- name: Listen on the management address only
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus-node-exporter
+    content: |
+      # Managed by Ansible (role: node_exporter)
+      ARGS="--web.listen-address={{ node_exporter_listen }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node exporter
+
+- name: Create systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/prometheus-node-exporter.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Start after wg-mgmt so the listen address exists
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/prometheus-node-exporter.service.d/10-after-wg-mgmt.conf
+    content: |
+      # Managed by Ansible (role: node_exporter)
+      [Unit]
+      After=wg-quick@{{ wg_mgmt_interface }}.service
+      Wants=wg-quick@{{ wg_mgmt_interface }}.service
+
+      [Service]
+      Restart=always
+      RestartSec=5
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node exporter
+
+- name: Enable node exporter
+  ansible.builtin.service:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

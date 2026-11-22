@@ -1,0 +1,70 @@
+---
+- name: Check admin keys and root-login setting
+  ansible.builtin.assert:
+    that:
+      - admin_ssh_public_keys | length > 0
+      - admin_ssh_public_keys | select('match', '^TODO') | list | length == 0
+      - ssh_permit_root_login in ['no', 'prohibit-password']
+    fail_msg: >-
+      Fill admin_ssh_public_keys in group_vars/all/main.yml with a real OpenSSH public key,
+      and keep ssh_permit_root_login at 'prohibit-password' or 'no'.
+    quiet: true
+
+- name: Check that sshd reads drop-in files
+  ansible.builtin.command: grep -Eq '^Include /etc/ssh/sshd_config.d/' /etc/ssh/sshd_config
+  changed_when: false
+  register: _hardening_include
+  failed_when: _hardening_include.rc not in [0, 1]
+  check_mode: false
+
+- name: Stop if sshd would ignore the drop-in
+  ansible.builtin.assert:
+    that: _hardening_include.rc == 0
+    fail_msg: "/etc/ssh/sshd_config has no Include for sshd_config.d; settings would be ignored."
+    quiet: true
+
+# Debian leaves sudo out when a root password is set during installation.
+- name: Install sudo
+  ansible.builtin.apt:
+    name: sudo
+    state: present
+    install_recommends: false
+
+- name: Create admin user
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: sudo
+    append: true
+    shell: /bin/bash
+    create_home: true
+    # "*" = no password can ever match, but the account isn't locked. The default "!" means
+    # locked, and Ubuntu's sshd then refuses even key logins ("account is locked").
+    password: "*"
+
+- name: Install admin SSH keys
+  ansible.posix.authorized_key:
+    user: "{{ admin_user }}"
+    key: "{{ item }}"
+    state: present
+  loop: "{{ admin_ssh_public_keys }}"
+  ignore_errors: "{{ ansible_check_mode }}"   # user isn't really created in --check
+
+- name: Allow admin to sudo without a password
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ admin_user }}"
+    content: "{{ admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+  when: admin_sudo_nopasswd
+
+- name: Harden sshd
+  ansible.builtin.template:
+    src: sshd-hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/10-homelab.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reload ssh

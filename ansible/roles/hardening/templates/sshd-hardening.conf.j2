@@ -1,0 +1,15 @@
+# Managed by Ansible (role: hardening). Do not edit by hand.
+# Loaded before the main sshd_config; for most options the first value wins.
+# The port is not set here on purpose: Ubuntu 24.04 uses ssh.socket and ignores Port.
+
+PermitRootLogin {{ ssh_permit_root_login }}
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+MaxAuthTries 3
+LoginGraceTime 20
+X11Forwarding no
+AllowAgentForwarding no
+ClientAliveInterval 300
+ClientAliveCountMax 2

@@ -1,0 +1,26 @@
+# Managed by Ansible (role: wg_mgmt). Do not edit by hand.
+# Management network only: SSH, panels, metrics. User VPN traffic never uses it.
+
+[Interface]
+Address = {{ wg_mgmt_ip }}/{{ wg_mgmt_prefix }}
+PrivateKey = {{ wg_mgmt_private_key }}
+{% if wg_mgmt_endpoint is defined %}
+ListenPort = {{ wg_mgmt_port }}
+{% endif %}
+
+{% for peer in groups['wg_mgmt'] | difference([inventory_hostname]) | sort %}
+{%   set p = hostvars[peer] %}
+{%   if p.wg_mgmt_public_key | default('TODO') != 'TODO' and (p.wg_mgmt_endpoint is defined or wg_mgmt_endpoint is defined) %}
+[Peer]
+# {{ peer }}
+PublicKey = {{ p.wg_mgmt_public_key }}
+AllowedIPs = {{ p.wg_mgmt_ip }}/32
+{%     if p.wg_mgmt_endpoint is defined %}
+Endpoint = {{ p.wg_mgmt_endpoint }}
+{%     endif %}
+{%     if wg_mgmt_behind_nat %}
+PersistentKeepalive = {{ wg_mgmt_keepalive }}
+{%     endif %}
+
+{%   endif %}
+{% endfor %}

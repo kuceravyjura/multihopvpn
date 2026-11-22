@@ -1,0 +1,49 @@
+---
+- name: Check management WireGuard settings
+  ansible.builtin.assert:
+    that:
+      - wg_mgmt_ip is defined
+      - wg_mgmt_public_key is defined and wg_mgmt_public_key != 'TODO'
+      - wg_mgmt_private_key is defined and wg_mgmt_private_key != 'TODO'
+    fail_msg: >-
+      Set wg_mgmt_ip and wg_mgmt_public_key in host_vars/{{ inventory_hostname }}.yml
+      and the private key in the vault (vault_wg_mgmt_private_keys).
+    quiet: true
+
+- name: Install wireguard-tools
+  ansible.builtin.apt:
+    name: wireguard-tools
+    state: present
+    install_recommends: false
+
+- name: Check for the WireGuard kernel module
+  ansible.builtin.command: modinfo wireguard
+  register: _wg_mgmt_mod
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Stop if the kernel has no WireGuard
+  ansible.builtin.assert:
+    that: _wg_mgmt_mod.rc == 0
+    fail_msg: >-
+      This kernel has no WireGuard module (common on OpenVZ/LXC VPS).
+      A userspace implementation (wireguard-go or boringtun) would be needed instead.
+    quiet: true
+
+- name: Write interface config
+  ansible.builtin.template:
+    src: wg-mgmt.conf.j2
+    dest: "/etc/wireguard/{{ wg_mgmt_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  diff: false   # the file holds the private key
+  notify: Reload wg-mgmt
+
+- name: Enable and start the interface
+  ansible.builtin.service:
+    name: "wg-quick@{{ wg_mgmt_interface }}"
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"   # wireguard-tools not really installed in --check

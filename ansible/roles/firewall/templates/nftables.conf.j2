@@ -1,0 +1,60 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (role: firewall). Do not edit by hand.
+#
+# Only the "inet homelab" table is defined here. There is deliberately no
+# "flush ruleset": Docker keeps its own tables, and wiping them would break wg-easy.
+# Container traffic passes the forward hook, so this input-only table doesn't touch it.
+
+table inet homelab
+delete table inet homelab
+
+{% set mgmt_tcp = ([ssh_port, node_exporter_port] + firewall_mgmt_tcp) | map('string') | unique | list %}
+{% set pub_udp = (firewall_public_udp + ([wg_mgmt_port] if wg_mgmt_endpoint is defined else [])) | map('string') | unique | list %}
+table inet homelab {
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        ct state established,related accept
+        ct state invalid drop
+        iif "lo" accept
+        meta l4proto { icmp, ipv6-icmp } accept
+
+        # DHCP replies, for providers that hand out addresses by DHCP
+        udp sport 67 udp dport 68 accept
+        udp sport 547 udp dport 546 accept
+
+{% if firewall_ssh_public %}
+        # Public SSH (temporary, until wg-mgmt access is proven)
+        tcp dport {{ ssh_port }} accept
+{% endif %}
+
+        # Management only: {{ mgmt_tcp | join(', ') }}
+        iifname "{{ wg_mgmt_interface }}" tcp dport { {{ mgmt_tcp | join(', ') }} } accept
+
+{% if firewall_public_tcp %}
+        tcp dport { {{ firewall_public_tcp | map('string') | unique | join(', ') }} } accept
+{% endif %}
+{% if pub_udp %}
+        udp dport { {{ pub_udp | join(', ') }} } accept
+{% endif %}
+{% for rule in firewall_extra_rules %}
+        {{ rule }}
+{% endfor %}
+{% if firewall_log_drops %}
+
+        limit rate 5/minute log prefix "homelab-drop: " level info
+{% endif %}
+    }
+{% if firewall_docker_mgmt_ports %}
+
+    # Docker-published admin ports. Docker DNATs them to containers, so they go through
+    # forward, not input. Only DNATed connections match, so VPN users' traffic to the
+    # same port numbers elsewhere on the internet is unaffected. "ct direction original"
+    # limits the check to the request: the container's reply comes back from the Docker
+    # bridge, not from wg-mgmt, and must not be dropped.
+    chain forward {
+        type filter hook forward priority filter - 5; policy accept;
+        ct direction original ct status dnat ct original proto-dst { {{ firewall_docker_mgmt_ports | map('string') | unique | join(', ') }} } iifname != "{{ wg_mgmt_interface }}" drop
+    }
+{% endif %}
+}

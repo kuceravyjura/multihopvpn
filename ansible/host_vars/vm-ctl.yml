@@ -1,0 +1,8 @@
+---
+# Home control node (Ansible, Gitea, CI runner). Sits behind home NAT,
+# so it dials out to the servers and keeps the tunnels alive.
+
+wg_mgmt_ip: 10.99.0.1
+wg_mgmt_public_key: "qta66Tg5Vv+IZKGnkUqZFMr9VGe9i9zxbiqsOvJ/viA="
+wg_mgmt_behind_nat: true
+common_ip_forward: false

@@ -1,0 +1,24 @@
+---
+common_packages:
+  - ca-certificates
+  - curl
+  - htop
+  - jq
+  - nftables
+  - rsync
+  - sqlite3
+  - unattended-upgrades
+
+common_bbr_enabled: true
+# Forwarding is needed while wg-easy (Docker) runs. Leaving it false never
+# switches an existing "1" off; that is a deliberate manual step.
+common_ip_forward: false
+
+# Units to stop and disable if they exist (e.g. ModemManager on Ubuntu cloud images).
+common_disable_services: []
+
+zram_enabled: false
+zram_size_mb: 256
+zram_algo: zstd
+
+journald_max_use: 100M
