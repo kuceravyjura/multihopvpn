@@ -12,9 +12,9 @@ zram_enabled: false
 # No wg-easy here (users are on Xray WireGuard inbounds, which run in userspace).
 common_ip_forward: false
 
-# Stage A (2026-11-22): firewall on, SSH still public. Ports re-checked against live listeners.
+# Firewall on since 2026-11-22 (stage A); SSH over wg-mgmt only since stage B, same day. Ports re-checked against live listeners.
 firewall_enabled: true
-firewall_ssh_public: true          # false only after SSH over wg-mgmt works
+firewall_ssh_public: false         # stage B: SSH over wg-mgmt only (home peers: win-home, vm-ctl)
 firewall_public_tcp:
   - 80      # acme.sh standalone renewal of the IP certificate (6-day certs, renewed every few days)
   - 8443    # vless + Reality (tcp)

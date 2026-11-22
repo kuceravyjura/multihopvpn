@@ -53,7 +53,8 @@ The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
   installed, both servers rebooted on current kernels (2026-11-22). **Firewall stage A live on
   both servers** (2026-11-22): panels, subscriptions and admin UIs reachable only over wg-mgmt
   (plus the other server's IP for panel sync); verified and disarmed over the tunnel.
-  Left: stage B (SSH over wg-mgmt only) once an always-on home peer exists.
+  **Stage B live** (2026-11-22): SSH reachable only over wg-mgmt; the home PC is an always-on
+  peer (`win-home`, WireGuard for Windows). Left: retire fail2ban on Server 2.
 - [x] Ansible in WSL (Ubuntu 24.04, ansible-core 2.21) reads the repo config and inventory
 - [ ] Phase 2: Hyper-V VMs and management WireGuard. `vm-staging` built (runbook 03); vault and
   WireGuard keys generated; edge roles pass on staging, idempotent and reboot-safe

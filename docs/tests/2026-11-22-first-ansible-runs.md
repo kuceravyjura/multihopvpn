@@ -98,6 +98,30 @@ running and direct traffic works through it; Xray WireGuard clients active; rela
 panel sync online both ways; tunnel access to SSH/panel/subscriptions/metrics; panel via `ssh -L`.
 Panel and VPN confirmed in the browser by the owner; dead-man switch disarmed over 10.99.0.11.
 
+## Firewall stage B: SSH over wg-mgmt only
+
+Prerequisite: an always-on home peer. The Windows PC joined wg-mgmt as `win-home` (10.99.0.2,
+WireGuard for Windows, key generated in the app; only the public key is in the repo). From
+Windows: ping both servers (56-72 ms), SSH and panel ports reachable, 10.99.0.x routed via the tunnel.
+
+Change: `firewall_ssh_public: false` on both servers; the inventory and the `vps1`/`vps2` SSH
+aliases now use 10.99.0.11/.12 (host keys compared with the public-IP keys before trusting them).
+Dry run showed exactly one diff per server: the public `tcp dport 22 accept` line.
+
+Server 2 first, then Server 1, each with the dead-man switch armed:
+
+| Check | Server 2 | Server 1 |
+|---|---|---|
+| Public 22 | filtered | filtered |
+| SSH over the tunnel | ✓ | ✓ |
+| Public services | 443, 3452, 8443 open | 8443, 11139 open (80 passed, nothing listening) |
+| Services | x-ui, AdGuardHome, nginx, docker active | x-ui, zapret active; panel sync connected |
+| Owner test (VPN, panel, SSH) | ✓ | ✓ |
+| Dead-man switch | disarmed over 10.99.0.12 | disarmed over 10.99.0.11 |
+
+Break-glass if the tunnel ever fails: the provider's web console, or wait for an armed dead-man
+switch to unload the firewall (`vps1-pub` / `vps2-pub` SSH aliases).
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |

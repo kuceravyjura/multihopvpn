@@ -15,9 +15,9 @@ common_disable_services:
   - udisks2
   - upower
 
-# Stage A (2026-11-22): firewall on, SSH still public. Ports re-checked against live listeners.
+# Firewall on since 2026-11-22 (stage A); SSH over wg-mgmt only since stage B, same day. Ports re-checked against live listeners.
 firewall_enabled: true
-firewall_ssh_public: true          # false only after SSH over wg-mgmt works
+firewall_ssh_public: false         # stage B: SSH over wg-mgmt only (home peers: win-home, vm-ctl)
 firewall_public_tcp:
   - 80      # nginx decoy site (+ certificate renewal)
   - 443     # nginx decoy site: makes the server look like an ordinary web host
