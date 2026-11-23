@@ -1,42 +1,68 @@
 # Homelab
 
+[![lint](https://github.com/kuceravyjura/multihopvpn/actions/workflows/lint.yml/badge.svg)](https://github.com/kuceravyjura/multihopvpn/actions/workflows/lint.yml)
+
 Two small VPS servers and a home Hyper-V host, managed as code.
 
-The VPS servers run a two-hop VPN (Xray / 3x-ui): **Server 1** does split routing and sends selected
-traffic over vless to **Server 2**, the exit node, which also runs AdGuard Home with DNS-over-HTTPS.
-Everything heavy (Ansible, Git, monitoring, test VMs) runs at home and reaches the servers over a
-separate management WireGuard network, so SSH, panels and metrics are never exposed to the internet.
+The servers run a two-hop VPN (Xray / 3x-ui) for family and friends who just press "on" in the
+app. **Server 1** (Moscow) is the entry point and splits traffic: Russian sites go out directly,
+blocked services go over a relay to **Server 2** (Lithuania), the exit node. Server 2 also runs
+AdGuard Home, so everyone's DNS is filtered. Everything heavy (Ansible, Git, monitoring, test VMs)
+runs at home and reaches the servers over a separate management WireGuard network. SSH, panels
+and metrics are never exposed to the internet.
 
-The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
+## How traffic flows
 
-```
-            Home lab (Hyper-V)
-   vm-ctl · vm-mon · vm-staging   10.99.0.1
-                 │  management WireGuard (wg-mgmt, 10.99.0.0/24)
-         ┌───────┴─────────┐
-   Server 1 (1 vCPU/512 MB) ──vless──▶ Server 2 (1 vCPU/1 GB) ──▶ internet
-   10.99.0.11                          10.99.0.12
-   Xray split routing                  Xray exit · AdGuard DoH
-```
+<p align="center"><img src="docs/img/routing.svg" alt="Users connect to Server 1 in Moscow. Russian traffic leaves directly; blocked services go over a relay to Server 2 in Lithuania. DNS goes through the relay to AdGuard Home on Server 2, with a 1.1.1.1 fallback if Server 2 is down." width="100%"></p>
+
+- **Users** only ever talk to one address. Server 1's split routing decides per connection: a list
+  of blocked services (Telegram, YouTube, Discord, Meta and others) goes over the relay, everything
+  else stays local and fast.
+- **The relay hop** is VLESS over xhttp with Reality, so it looks like ordinary HTTPS.
+- **DNS** from Server 1 users is caught on port 53 and sent through the relay to AdGuard Home's
+  DNS-over-HTTPS. AdGuard blocks ads and trackers, then asks Quad9 / Control D over encrypted DNS.
+- **Reliability over cleverness:** if Server 2 is down for maintenance, Server 1 answers DNS from
+  1.1.1.1 after 1.5 s and Russian traffic keeps working. Users never have to change anything
+  ([runbook 05](docs/runbooks/05-moscow-dns-via-adguard.md), [ADR 0004](docs/adr/0004-per-user-dns-identity.md)).
+
+## How changes ship, and how it recovers
+
+<p align="center"><img src="docs/img/pipeline.svg" alt="Deploy: commit, CI lint, staging VM, Server 2, Server 1. Recover: nightly backups pulled home, encrypted kit on Google Drive, monthly restore drill on staging. Observe: probes and metrics, Prometheus and Alertmanager on Server 2, alerts by Telegram or ntfy, Grafana at home." width="100%"></p>
+
+- **Deploy.** Every push is linted in GitHub Actions. Ansible applies roles to the Hyper-V staging
+  VM first, then Server 2, then Server 1, one host at a time, over the management network as the
+  `ops` user (root login is off). Firewall changes arm a dead-man switch that rolls them back after
+  20 minutes unless access is proven.
+- **Recover.** Nightly backups of panel databases and configs are pulled home and packed into an
+  encrypted, versioned recovery kit on Google Drive (restic). One password in a password manager
+  opens everything: SSH keys, vault, repository, server backups. A monthly drill rebuilds staging
+  from the kit; a fresh VM becomes a working server in about 5 minutes
+  ([runbook 08](docs/runbooks/08-recovery-kit.md), [runbook 09](docs/runbooks/09-recover-from-zero.md)).
+- **Observe.** Prometheus and Alertmanager on Server 2 probe both servers from both sides and send
+  Telegram alerts for services, certificates and stale backups. Server 1 watches the watcher and
+  pushes to ntfy if Server 2's monitoring disappears. Grafana at home shows the history
+  ([ADR 0005](docs/adr/0005-monitoring-placement.md), [runbook 07](docs/runbooks/07-monitoring.md)).
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `ansible/` | Inventory, variables, playbook and roles |
-| `ansible/roles/` | `common`, `hardening`, `wg_mgmt`, `firewall`, `node_exporter` (+ planned `xui`, `adguard`, `backup`) |
-| `scripts/` | Phase-0 backup (`Backup-Vps.ps1` + `collect-backup.sh`), read-only `healthcheck.sh`, vault check |
+| `ansible/` | Inventory, variables (secrets in an encrypted vault), `site.yml`, `access.yml` |
+| `ansible/roles/` | **Base:** `common`, `hardening`, `wg_mgmt`, `firewall` · **Services:** `xui`, `adguard`, `dns_identity` · **Backups:** `backup`, `recovery_kit` · **Monitoring:** `node_exporter`, `blackbox_exporter`, `monitoring`, `watcher`, `grafana` |
+| `scripts/` | Backup pull (`Backup-Vps.ps1`), recovery-kit task, home launcher (`Open-Homelab.ps1`), one-off migration helpers |
 | `homelab-vms/` | Hyper-V VM creation (`New-LabVm.ps1`) |
 | `docs/adr/` | Architecture decisions and the reasons behind them |
-| `docs/runbooks/` | Step-by-step procedures |
+| `docs/runbooks/` | Step-by-step procedures, from first Ansible run to recovering from zero |
 | `docs/postmortems/` | Incident write-ups |
+| `docs/tests/` | Test logs: what was checked, and how |
 | `.github/workflows/` | Lint pipeline (yamllint, ansible-lint, vault check) |
 
 ## Getting started
 
 1. **Back up first.** Follow [docs/runbooks/00-inventory-and-backup.md](docs/runbooks/00-inventory-and-backup.md).
 2. **Set up Ansible in WSL.** Follow [docs/runbooks/01-first-ansible-run.md](docs/runbooks/01-first-ansible-run.md).
-3. **Run against staging, then Server 2, then Server 1**, one host at a time.
+3. **Build the staging VM** ([runbook 03](docs/runbooks/03-staging-vm.md)) and run everything there first.
+4. **Then Server 2, then Server 1**, one host at a time.
 
 ## Safety rules
 
@@ -44,45 +70,3 @@ The full plan with diagrams is in [`homelab-plan.html`](homelab-plan.html).
 2. Every change runs on `vm-staging` first.
 3. Commit before applying, so there is always a known-good version.
 4. Secrets live only in the encrypted vault. No real IPs, UUIDs, keys, domains or client names anywhere else.
-
-## Status
-
-- [x] Phase 0: backups taken, inventory recorded ([s1-msk](docs/inventory/s1-msk.md), [s2-lt](docs/inventory/s2-lt.md))
-- [ ] Phase 1: quick security fixes. Done so far: Portainer and other leftovers removed,
-  SSH password login off on both, logs capped, Docker removed from Server 1, all updates
-  installed, both servers rebooted on current kernels (2026-11-22). **Firewall stage A live on
-  both servers** (2026-11-22): panels, subscriptions and admin UIs reachable only over wg-mgmt
-  (plus the other server's IP for panel sync); verified and disarmed over the tunnel.
-  **Stage B live** (2026-11-22): SSH reachable only over wg-mgmt; the home PC is an always-on
-  peer (`win-home`, WireGuard for Windows). Left: retire fail2ban on Server 2.
-- [x] Ansible in WSL (Ubuntu 24.04, ansible-core 2.21) reads the repo config and inventory
-- [ ] Phase 2: Hyper-V VMs and management WireGuard. `vm-staging` built (runbook 03); vault and
-  WireGuard keys generated; edge roles pass on staging, idempotent and reboot-safe
-  ([test log](docs/tests/2026-11-22-first-ansible-runs.md)). **wg-mgmt works end to end**: home
-  (WSL as `vm-ctl`) reaches both servers and staging over 10.99.0.x. Left: a dedicated vm-ctl VM (optional).
-- [x] Phase 3: everything in Ansible. Edge roles applied to **both servers** on 2026-11-22
-  (idempotent, all VPN services verified); firewall on, SSH and panels over wg-mgmt only.
-  `xui`, `adguard` and `backup` roles written; **acceptance test passed**: a fresh staging VM became
-  a working copy of Server 2 in one run (4.5 min), second run changed=0
-  ([ADR 0003](docs/adr/0003-panel-state-and-admin-access.md), [runbook 04](docs/runbooks/04-backup-and-restore.md)).
-  Applied to both servers 2026-11-22: root login off (Ansible and people use `ops`), nightly
-  backups at 03:40 pulled home with `Backup-Vps.ps1`.
-- [x] Phase 4: AdGuard for Server 1 users (2026-11-22). Their DNS goes through the relay to
-  Server 2's AdGuard as `srv1-moscow`, with a 1.5 s fallback to 1.1.1.1; canary first, a lab test
-  fixed lost NXDOMAIN answers before rollout ([runbook 05](docs/runbooks/05-moscow-dns-via-adguard.md)).
-  Optional, only if Russian sites get slower: send Russian domains to a local resolver.
-- [ ] Phase 5: retire wg-easy. **Users moved to 3x-ui on 2026-11-22** without touching their devices
-  (same server key, port and peer keys; [runbook 06](docs/runbooks/06-wg-easy-to-3x-ui.md)).
-  Left after a quiet week (2026-11-29): remove wg-easy and Docker, then the matching Ansible settings.
-- [ ] Phase 6: monitoring. **Live 2026-11-22:** Prometheus + Alertmanager on Server 2, probes both
-  ways, Telegram alerts (~1.5 min), dead man's switch on Server 1 via ntfy
-  ([ADR 0005](docs/adr/0005-monitoring-placement.md), [runbook 07](docs/runbooks/07-monitoring.md)).
-  Grafana at home (WSL, Ansible role, dashboard as code) reads Server 2's history over wg-mgmt.
-  Left: Xray per-inbound traffic stats; "what is reachable from Moscow directly" probes.
-- [ ] Phase 7: backups and recovery. **2026-11-22:** nightly backups are monitored (BackupStale,
-  BackupTooSmall); an encrypted **recovery kit on Google Drive** (restic + rclone, SSH keys, vault
-  password, repo bundle, server backups, WireGuard export, private access sheet) is uploaded
-  automatically and verified by restoring it; one master password in Bitwarden
-  ([runbook 08](docs/runbooks/08-recovery-kit.md), [runbook 09](docs/runbooks/09-recover-from-zero.md)).
-  Left: first full monthly drill (staging restored from the kit), then it repeats monthly.
-- [ ] Phase 8: CI/CD deploys

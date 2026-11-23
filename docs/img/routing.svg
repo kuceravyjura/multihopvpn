@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 620" width="920" height="620" role="img" aria-labelledby="t d" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">How user traffic and DNS flow through the two servers</title>
+<desc id="d">Users connect to Server 1 in Moscow. Russian traffic leaves Server 1 directly. Traffic for blocked services goes over a relay to Server 2 in Lithuania and exits there. DNS queries go through the same relay to AdGuard Home on Server 2, which asks encrypted upstream resolvers; if Server 2 is unreachable, Server 1 falls back to 1.1.1.1 after 1.5 seconds.</desc>
+<style>
+  .bg { fill: #ffffff; stroke: #d0d7de; }
+  .box { fill: #f6f8fa; stroke: #d0d7de; }
+  .inner { fill: #ffffff; stroke: #d0d7de; }
+  .t { fill: #1f2328; font-size: 15px; font-weight: 600; }
+  .s { fill: #59636e; font-size: 12.5px; }
+  .r { fill: #1f2328; font-size: 13px; }
+  .ru { stroke: #d4901f; } .fo { stroke: #d9534f; } .dn { stroke: #1a9b74; }
+  .ruf { fill: #d4901f; } .fof { fill: #d9534f; } .dnf { fill: #1a9b74; }
+  .flow { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 2 9; animation: run 0.9s linear infinite; }
+  .fall { fill: none; stroke-width: 2; stroke-dasharray: 6 6; opacity: .7; }
+  @keyframes run { to { stroke-dashoffset: -11; } }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #0d1117; stroke: #30363d; }
+    .box { fill: #161b22; stroke: #30363d; }
+    .inner { fill: #0d1117; stroke: #3d444d; }
+    .t, .r { fill: #e6edf3; } .s { fill: #9198a1; }
+    .ru { stroke: #e3a33a; } .fo { stroke: #f06e6a; } .dn { stroke: #3fc29a; }
+    .ruf { fill: #e3a33a; } .fof { fill: #f06e6a; } .dnf { fill: #3fc29a; }
+  }
+  @media (prefers-reduced-motion: reduce) { .flow { animation: none; } }
+</style>
+<defs>
+  <path id="p-ru" d="M465 560 L465 400 C 620 400, 640 208, 790 208"/>
+  <path id="p-fo" d="M477 560 L477 400 C 320 400, 170 400, 170 300 L150 58"/>
+  <path id="p-dn" d="M489 560 L489 400 C 330 414, 196 414, 196 300 L490 58"/>
+  <path id="p-fb" d="M489 560 L489 410 C 630 420, 650 448, 790 448"/>
+</defs>
+
+<rect class="bg" x="1" y="1" width="918" height="618" rx="16"/>
+
+<!-- flows (drawn first, so boxes cover them) -->
+<use href="#p-fb" class="fall dn"/>
+<use href="#p-ru" class="flow ru"/>
+<use href="#p-fo" class="flow fo"/>
+<use href="#p-dn" class="flow dn"/>
+
+<!-- packets -->
+<g class="ruf">
+  <circle r="6"><animateMotion dur="4s" repeatCount="indefinite"><mpath href="#p-ru"/></animateMotion></circle>
+  <circle r="6"><animateMotion dur="4s" begin="2s" repeatCount="indefinite"><mpath href="#p-ru"/></animateMotion></circle>
+</g>
+<g class="fof">
+  <circle r="6"><animateMotion dur="5s" begin="0.7s" repeatCount="indefinite"><mpath href="#p-fo"/></animateMotion></circle>
+  <circle r="6"><animateMotion dur="5s" begin="3.2s" repeatCount="indefinite"><mpath href="#p-fo"/></animateMotion></circle>
+</g>
+<g class="dnf">
+  <rect x="-5" y="-5" width="10" height="10" rx="2"><animateMotion dur="5s" begin="1.4s" repeatCount="indefinite"><mpath href="#p-dn"/></animateMotion></rect>
+  <rect x="-5" y="-5" width="10" height="10" rx="2"><animateMotion dur="5s" begin="3.9s" repeatCount="indefinite"><mpath href="#p-dn"/></animateMotion></rect>
+</g>
+
+<!-- destinations -->
+<rect class="box" x="50" y="30" width="200" height="56" rx="10"/>
+<text class="t" x="150" y="54" text-anchor="middle">Foreign internet</text>
+<text class="s" x="150" y="73" text-anchor="middle">blocked services, worldwide</text>
+
+<rect class="box" x="380" y="30" width="220" height="56" rx="10"/>
+<text class="t" x="490" y="54" text-anchor="middle">Quad9 · Control D</text>
+<text class="s" x="490" y="73" text-anchor="middle">encrypted upstream DNS</text>
+
+<rect class="box" x="690" y="180" width="200" height="56" rx="10"/>
+<text class="t" x="790" y="204" text-anchor="middle">Russian internet</text>
+<text class="s" x="790" y="223" text-anchor="middle">fast, local, no extra hop</text>
+
+<rect class="box" x="690" y="420" width="200" height="56" rx="10"/>
+<text class="t" x="790" y="444" text-anchor="middle">1.1.1.1</text>
+<text class="s" x="790" y="463" text-anchor="middle">DNS fallback after 1.5 s</text>
+
+<!-- Server 2 -->
+<rect class="box" x="40" y="140" width="290" height="160" rx="14"/>
+<text class="t" x="60" y="166">Server 2 · Lithuania</text>
+<text class="s" x="60" y="184">exit node, 1 GB RAM</text>
+<rect class="inner" x="56" y="200" width="122" height="84" rx="8"/>
+<text class="r" x="117" y="230" text-anchor="middle" font-weight="600">Xray exit</text>
+<text class="s" x="117" y="250" text-anchor="middle">relay inbound</text>
+<text class="s" x="117" y="266" text-anchor="middle">VLESS · Reality</text>
+<rect class="inner" x="190" y="200" width="124" height="84" rx="8"/>
+<text class="r" x="252" y="230" text-anchor="middle" font-weight="600">AdGuard Home</text>
+<text class="s" x="252" y="250" text-anchor="middle">blocks ads, trackers</text>
+<text class="s" x="252" y="266" text-anchor="middle">DoH · DoT</text>
+
+<!-- Server 1 -->
+<rect class="box" x="330" y="330" width="290" height="140" rx="14"/>
+<text class="t" x="350" y="356">Server 1 · Moscow</text>
+<text class="s" x="350" y="374">entry node, Xray split routing</text>
+<circle class="fof" cx="356" cy="397" r="4"/><text class="r" x="368" y="401">blocked list (36 rules) → relay</text>
+<rect class="dnf" x="352" y="415" width="8" height="8" rx="1.5"/><text class="r" x="368" y="423">DNS :53 → AdGuard via relay</text>
+<circle class="ruf" cx="356" cy="441" r="4"/><text class="r" x="368" y="445">everything else → direct</text>
+
+<!-- users -->
+<rect class="box" x="375" y="520" width="200" height="56" rx="10"/>
+<text class="t" x="475" y="544" text-anchor="middle">Users</text>
+<text class="s" x="475" y="563" text-anchor="middle">VLESS Reality · WireGuard</text>
+
+<!-- edge labels -->
+<text class="s" x="190" y="432">relay hop</text>
+<text class="s" x="190" y="449">VLESS xhttp + Reality</text>
+<text class="s" x="650" y="314">direct from Moscow</text>
+<text class="s" x="640" y="398">only if Server 2 is down</text>
+
+<!-- legend -->
+<g transform="translate(625 520)">
+  <circle class="ruf" cx="6" cy="6" r="5"/><text class="s" x="20" y="10">Russian traffic</text>
+  <circle class="fof" cx="6" cy="26" r="5"/><text class="s" x="20" y="30">foreign traffic, via relay</text>
+  <rect class="dnf" x="1" y="41" width="10" height="10" rx="2"/><text class="s" x="20" y="50">DNS query (answer returns)</text>
+  <line class="fall dn" x1="0" y1="66" x2="12" y2="66"/><text class="s" x="20" y="70">DNS fallback</text>
+</g>
+</svg>

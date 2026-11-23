@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" width="920" height="480" role="img" aria-labelledby="t d" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">How changes are deployed, backed up and watched</title>
+<desc id="d">Deploy: a commit is linted by GitHub Actions, applied by Ansible to the staging VM first, then to Server 2, then Server 1, over the management WireGuard network. Recover: nightly server backups are pulled home, packed into an encrypted recovery kit on Google Drive, and a monthly drill rebuilds staging from that kit. Observe: probes and metrics feed Prometheus and Alertmanager on Server 2, which alert by Telegram; a watcher on Server 1 uses ntfy if Server 2 is down; Grafana at home shows the history.</desc>
+<style>
+  .bg { fill: #ffffff; stroke: #d0d7de; }
+  .box { fill: #f6f8fa; stroke: #d0d7de; }
+  .t { fill: #1f2328; font-size: 15px; font-weight: 600; }
+  .s { fill: #59636e; font-size: 12.5px; }
+  .h { fill: #1f2328; font-size: 13px; font-weight: 600; letter-spacing: .04em; }
+  .dep { stroke: #2f6fd6; } .rec { stroke: #1a9b74; } .obs { stroke: #8250df; }
+  .depf { fill: #2f6fd6; } .recf { fill: #1a9b74; } .obsf { fill: #8250df; }
+  .glow { fill: none; stroke-width: 2.5; opacity: 0; }
+  .flow { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 2 9; animation: run .9s linear infinite; }
+  .back { fill: none; stroke-width: 1.8; stroke-dasharray: 6 6; opacity: .75; }
+  @keyframes run { to { stroke-dashoffset: -11; } }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #0d1117; stroke: #30363d; }
+    .box { fill: #161b22; stroke: #30363d; }
+    .t, .h { fill: #e6edf3; } .s { fill: #9198a1; }
+    .dep { stroke: #4c8dff; } .rec { stroke: #3fc29a; } .obs { stroke: #a37cf0; }
+    .depf { fill: #4c8dff; } .recf { fill: #3fc29a; } .obsf { fill: #a37cf0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .flow { animation: none; } }
+</style>
+<defs>
+  <path id="p1" d="M60 92 L860 92"/>
+  <path id="p2" d="M60 246 L860 246"/>
+  <path id="p3" d="M60 400 L860 400"/>
+  <path id="pb" d="M802 206 L460 134"/>
+</defs>
+
+<rect class="bg" x="1" y="1" width="918" height="478" rx="16"/>
+
+<!-- lines first, boxes cover them -->
+<use href="#p1" class="flow dep"/>
+<use href="#p2" class="flow rec"/>
+<use href="#p3" class="flow obs"/>
+<use href="#pb" class="back rec"/>
+
+<g class="depf">
+  <circle r="6"><animateMotion dur="7s" repeatCount="indefinite"><mpath href="#p1"/></animateMotion></circle>
+</g>
+<g class="recf">
+  <circle r="6"><animateMotion dur="6s" begin="1s" repeatCount="indefinite"><mpath href="#p2"/></animateMotion></circle>
+  <circle r="6"><animateMotion dur="6s" begin="4s" repeatCount="indefinite"><mpath href="#p2"/></animateMotion></circle>
+</g>
+<g class="obsf">
+  <circle r="6"><animateMotion dur="3.5s" repeatCount="indefinite"><mpath href="#p3"/></animateMotion></circle>
+  <circle r="6"><animateMotion dur="3.5s" begin="1.75s" repeatCount="indefinite"><mpath href="#p3"/></animateMotion></circle>
+</g>
+
+<!-- Deploy -->
+<text class="h" x="18" y="38">DEPLOY · every change goes through staging first</text>
+<g>
+  <rect class="box" x="18" y="52" width="156" height="80" rx="10"/>
+  <rect class="glow dep" x="18" y="52" width="156" height="80" rx="10"><animate attributeName="opacity" dur="7s" repeatCount="indefinite" keyTimes="0;0.06;0.1;1" values="1;1;0;0"/></rect>
+  <text class="t" x="96" y="84" text-anchor="middle">Commit</text>
+  <text class="s" x="96" y="103" text-anchor="middle">Ansible roles + vault</text>
+  <text class="s" x="96" y="119" text-anchor="middle">secrets encrypted</text>
+</g>
+<g>
+  <rect class="box" x="200" y="52" width="156" height="80" rx="10"/>
+  <rect class="glow dep" x="200" y="52" width="156" height="80" rx="10"><animate attributeName="opacity" dur="7s" repeatCount="indefinite" keyTimes="0;0.22;0.23;0.32;0.33;1" values="0;0;1;1;0;0"/></rect>
+  <text class="t" x="278" y="84" text-anchor="middle">CI lint</text>
+  <text class="s" x="278" y="103" text-anchor="middle">GitHub Actions</text>
+  <text class="s" x="278" y="119" text-anchor="middle">yamllint, ansible-lint</text>
+</g>
+<g>
+  <rect class="box" x="382" y="52" width="156" height="80" rx="10"/>
+  <rect class="glow dep" x="382" y="52" width="156" height="80" rx="10"><animate attributeName="opacity" dur="7s" repeatCount="indefinite" keyTimes="0;0.45;0.46;0.55;0.56;1" values="0;0;1;1;0;0"/></rect>
+  <text class="t" x="460" y="84" text-anchor="middle">Staging VM</text>
+  <text class="s" x="460" y="103" text-anchor="middle">Hyper-V test copy</text>
+  <text class="s" x="460" y="119" text-anchor="middle">dry run, apply, test</text>
+</g>
+<g>
+  <rect class="box" x="564" y="52" width="156" height="80" rx="10"/>
+  <rect class="glow dep" x="564" y="52" width="156" height="80" rx="10"><animate attributeName="opacity" dur="7s" repeatCount="indefinite" keyTimes="0;0.68;0.69;0.78;0.79;1" values="0;0;1;1;0;0"/></rect>
+  <text class="t" x="642" y="84" text-anchor="middle">Server 2</text>
+  <text class="s" x="642" y="103" text-anchor="middle">apply, verify</text>
+  <text class="s" x="642" y="119" text-anchor="middle">over wg-mgmt</text>
+</g>
+<g>
+  <rect class="box" x="746" y="52" width="156" height="80" rx="10"/>
+  <rect class="glow dep" x="746" y="52" width="156" height="80" rx="10"><animate attributeName="opacity" dur="7s" repeatCount="indefinite" keyTimes="0;0.9;0.91;1" values="0;0;1;1"/></rect>
+  <text class="t" x="824" y="84" text-anchor="middle">Server 1</text>
+  <text class="s" x="824" y="103" text-anchor="middle">apply, verify</text>
+  <text class="s" x="824" y="119" text-anchor="middle">dead-man firewall</text>
+</g>
+
+<text class="s" x="18" y="156">Ansible runs from the home PC (WSL); automated deploys come next.</text>
+
+<!-- Recover -->
+<text class="h" x="18" y="192">RECOVER · state flows back home, restore tested monthly</text>
+<rect class="box" x="18" y="206" width="200" height="80" rx="10"/>
+<text class="t" x="118" y="238" text-anchor="middle">Nightly backup 03:40</text>
+<text class="s" x="118" y="257" text-anchor="middle">panel DB, AdGuard, configs</text>
+<text class="s" x="118" y="273" text-anchor="middle">on each server, 7 days</text>
+<rect class="box" x="246" y="206" width="200" height="80" rx="10"/>
+<text class="t" x="346" y="238" text-anchor="middle">Pulled to home PC</text>
+<text class="s" x="346" y="257" text-anchor="middle">at logon, 13:00, 21:00</text>
+<text class="s" x="346" y="273" text-anchor="middle">over wg-mgmt</text>
+<rect class="box" x="474" y="206" width="200" height="80" rx="10"/>
+<text class="t" x="574" y="238" text-anchor="middle">Recovery kit</text>
+<text class="s" x="574" y="257" text-anchor="middle">Google Drive, restic</text>
+<text class="s" x="574" y="273" text-anchor="middle">encrypted, versioned</text>
+<rect class="box" x="702" y="206" width="200" height="80" rx="10"/>
+<text class="t" x="802" y="238" text-anchor="middle">Monthly drill</text>
+<text class="s" x="802" y="257" text-anchor="middle">staging rebuilt from the kit</text>
+<text class="s" x="802" y="273" text-anchor="middle">alert if overdue</text>
+
+<!-- Observe -->
+<text class="h" x="18" y="346">OBSERVE · alerts reach the owner, even if a server is gone</text>
+<rect class="box" x="18" y="360" width="280" height="80" rx="10"/>
+<text class="t" x="158" y="392" text-anchor="middle">Probes and metrics</text>
+<text class="s" x="158" y="411" text-anchor="middle">node_exporter, blackbox</text>
+<text class="s" x="158" y="427" text-anchor="middle">each server checks the other</text>
+<rect class="box" x="320" y="360" width="280" height="80" rx="10"/>
+<text class="t" x="460" y="392" text-anchor="middle">Prometheus · Alertmanager</text>
+<text class="s" x="460" y="411" text-anchor="middle">on Server 2</text>
+<text class="s" x="460" y="427" text-anchor="middle">services, certificates, backups</text>
+<rect class="box" x="622" y="360" width="280" height="80" rx="10"/>
+<text class="t" x="762" y="392" text-anchor="middle">Owner</text>
+<text class="s" x="762" y="411" text-anchor="middle">Telegram; ntfy if Server 2 is down</text>
+<text class="s" x="762" y="427" text-anchor="middle">Grafana at home for history</text>
+</svg>
