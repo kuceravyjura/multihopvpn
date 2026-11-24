@@ -113,6 +113,7 @@ td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font
 .phase-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .when { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
 .phase ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.phase-body h4 { margin: 6px 0 0; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted, #888); }
 .outcome { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 0.9rem; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 6px 6px 0; }
 .outcome b { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; padding-top: 2px; }
 .outcome > span { min-width: 0; }
@@ -559,13 +560,13 @@ pre .c { color: var(--muted); }
       <div class="outcome"><b>Done when</b><span>You learn a service got blocked in Russia from the bot, not from a user.</span></div>
     </div></li>
     <li class="phase"><div class="num">C</div><div class="phase-body">
-      <div class="phase-head"><h3>Xray traffic stats</h3><span class="pill p-idle">Planned</span></div>
-      <ul><li>Traffic per user and per inbound in Prometheus and Grafana (the phase 6 leftover).</li></ul>
+      <div class="phase-head"><h3>Xray traffic stats</h3><span class="pill p-ok">Done</span></div>
+      <ul><li><b>Live 2026-11-24</b> (ADR 0009): traffic per user and per inbound from the panels' databases, in Prometheus and Grafana.</li></ul>
     </div></li>
     <li class="phase"><div class="num">D</div><div class="phase-body">
-      <div class="phase-head"><h3>3x-ui API layer and <code>homelab-users</code></h3><span class="pill p-idle">Planned</span></div>
+      <div class="phase-head"><h3>3x-ui API layer and <code>homelab-users</code></h3><span class="pill p-warn">Users done</span></div>
       <ul>
-        <li>Create a user's inbound with a remark, sniffing and the relay routing; delete it when they leave. From the PC, later from the bot.</li>
+        <li><b>Live 2026-11-24</b> (ADR 0010): WireGuard users from Telegram through the panels' API: new user, add device, resend config (<code>.conf</code> + QR), disable, delete. Changes apply live; removing a device doesn't restart Xray.</li>
         <li>Camouflage picker: own domain and fake site, else a vetted subnet neighbor (RealiTLScanner, run from home), else a popular Russian site (Moscow only).</li>
       </ul>
     </div></li>
@@ -585,6 +586,12 @@ pre .c { color: var(--muted); }
     <li class="phase"><div class="num">G</div><div class="phase-body">
       <div class="phase-head"><h3>Extras</h3><span class="pill p-idle">Phase 9</span></div>
       <ul><li>A page where users see their own traffic; Loki for central logs; Authentik single sign-on; Packer or Terraform for the Hyper-V VMs.</li></ul>
+      <h4>Maybe, mostly for show</h4>
+      <ul>
+        <li><b>Entry through a whitelisted Russian CDN</b> (e.g. Beget) for regional mobile shutdowns ("white lists"), where Cloudflare is cut off too: XHTTP behind nginx on Server 1, VLESS only. Or a small entry VPS in a usually-whitelisted cloud. Can't be tested without a user inside a shutdown; not needed today.</li>
+        <li><b>Cloudflare CDN fallback</b> against IP blocking: needs an own domain on Cloudflare; VLESS only.</li>
+        <li><b>Country-pinned exit</b> (Psiphon behind WARP, <code>warp-plus</code>) as an extra outbound for region-locked sites. Slow; a third party sees the destinations.</li>
+      </ul>
     </div></li>
   </ol>
 </section>
@@ -627,10 +634,13 @@ pre .c { color: var(--muted); }
   <div class="eyebrow">Still needed</div>
   <h2>Open decisions</h2>
   <ul class="questions">
-    <li>Hide AdGuard's web UI on the public DoH port :3452 (DNS keeps working).</li>
-    <li>Panel node links: keep them off, or allow one direction.</li>
-    <li>Clean up the duplicate inbounds left in both panels by the node-sync incident.</li>
+    <li>Retire the 3 stale relay clients on Server 2 and the <code>www.ya.ru</code> name (on hold).</li>
     <li>An optional personal Google API key for rclone (fewer Drive rate limits).</li>
+  </ul>
+  <h3>Settled</h3>
+  <ul class="questions">
+    <li>AdGuard's admin page is off the internet: nginx serves DoH on :3452, the UI is tunnel-only (2026-11-24).</li>
+    <li>Panel node links deleted with all their copy inbounds, on both servers (2026-11-25).</li>
   </ul>
   <h3>Parked on purpose</h3>
   <ul class="questions">
