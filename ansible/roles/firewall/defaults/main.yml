@@ -6,6 +6,9 @@ firewall_ssh_public: true
 
 firewall_public_tcp: []
 firewall_public_udp: []
+# One UDP range for WireGuard user inbounds created by the bot (ADR 0010), e.g. "20000-29999".
+# Silent to anyone without a valid key; lets new users appear without a firewall change.
+firewall_user_udp_range: ""
 # Reachable only through the wg-mgmt interface. SSH and node_exporter are always added, and
 # 9115 (blackbox) / 9090 (Prometheus) on hosts that run them.
 firewall_mgmt_tcp: []

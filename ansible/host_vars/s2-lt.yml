@@ -108,3 +108,6 @@ monitoring_probes:
     prober: s1-msk
     module: reality_target
     target: "https://{{ vault_s2_domain }}:1111/"
+
+# WireGuard users created by the bot (ADR 0010): one UDP range instead of a port per person.
+firewall_user_udp_range: "20000-29999"

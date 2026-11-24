@@ -7,6 +7,54 @@
     fail_msg: vault_telegram_bot_token / vault_telegram_chat_id missing from the vault.
     quiet: true
 
+- name: Tools for user configs (keys, QR codes)
+  ansible.builtin.apt:
+    name: [wireguard-tools, qrencode]
+    state: present
+
+- name: Bot modules folder
+  ansible.builtin.file:
+    path: /usr/local/lib/homelab-bot
+    state: directory
+    mode: "0755"
+
+- name: Bot modules (users, panel API)
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/lib/homelab-bot/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [xui_users.py, bot_users.py]
+  notify: Restart homelab-reach-bot
+
+# The panels' port and secret path live in their databases, not in the vault: read them here,
+# as access.yml does. Only panels with a token in the vault are used.
+- name: Read each panel's port and path
+  ansible.builtin.command:
+    argv: [sqlite3, -separator, "=", /etc/x-ui/x-ui.db, "select key, value from settings where key in ('webPort','webBasePath');"]
+  delegate_to: "{{ item.host }}"
+  loop: "{{ reach_bot_user_panels | selectattr('token', 'truthy') | list }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: _panel_settings
+  changed_when: false
+  check_mode: false
+
+- name: Panels for the bot
+  ansible.builtin.set_fact:
+    _bot_panels: >-
+      {{ _bot_panels | default([]) + [{
+           'key': item.item.key, 'title': item.item.title, 'endpoint_host': item.item.endpoint,
+           'base': 'https://' ~ hostvars[item.item.host].wg_mgmt_ip ~ ':' ~ _s.webPort ~ (_s.webBasePath | regex_replace('/$', '')),
+           'port_lo': hostvars[item.item.host].firewall_user_udp_range.split('-')[0],
+           'port_hi': hostvars[item.item.host].firewall_user_udp_range.split('-')[1]}] }}
+  vars:
+    _s: "{{ dict(item.stdout_lines | map('split', '=', 1)) }}"
+  loop: "{{ _panel_settings.results }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+
 - name: Bot script
   ansible.builtin.copy:
     src: homelab-reach-bot.py
@@ -19,7 +67,7 @@
 - name: Bot configuration
   ansible.builtin.copy:
     dest: /etc/homelab-reach-bot.json
-    content: "{{ {'agents': reach_bot_agents, 'prometheus': reach_bot_prometheus} | to_nice_json }}\n"
+    content: "{{ {'agents': reach_bot_agents, 'prometheus': reach_bot_prometheus, 'panels': _bot_panels | default([])} | to_nice_json }}\n"
     owner: root
     group: root
     mode: "0644"
@@ -31,6 +79,9 @@
     content: |
       BOT_TOKEN={{ reach_bot_token }}
       CHAT_ID={{ reach_bot_chat_id }}
+      {% for p in reach_bot_user_panels if p.token %}
+      XUI_TOKEN_{{ p.key | upper }}={{ p.token }}
+      {% endfor %}
     owner: root
     group: root
     mode: "0600"

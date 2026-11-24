@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""homelab-reach-bot: Telegram commands for the reachability agents (ADR 0007, runbook 11).
+"""homelab-reach-bot: the homelab's Telegram bot (ADR 0007 reachability, ADR 0010 users).
+
+  /menu           buttons: ➕ New user, 👥 Users (WireGuard users on both panels), 🔎 Check a site
 
   /check <site>   test now from Moscow (direct), for Server 1's users (through its routing),
                   and from Lithuania (direct); reply with a verdict
@@ -12,13 +14,16 @@ Answers only the owner's chat. Config /etc/homelab-reach-bot.json, secrets in
 /etc/homelab-reach-bot.env (BOT_TOKEN, CHAT_ID). Long polling: no open port."""
 import json
 import os
+import sys
 import threading
+import uuid
 import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 CFG = json.load(open("/etc/homelab-reach-bot.json"))
+sys.path.insert(0, "/usr/local/lib/homelab-bot")
 TOKEN, CHAT = os.environ["BOT_TOKEN"], str(os.environ["CHAT_ID"])
 API = f"https://api.telegram.org/bot{TOKEN}"
 STATE = os.environ.get("STATE_DIRECTORY", "/var/lib/homelab-reach-bot")
@@ -40,6 +45,36 @@ def tg(method, **params):
     data = urllib.parse.urlencode(params).encode()
     with urllib.request.urlopen(f"{API}/{method}", data=data, timeout=70) as r:
         return json.load(r)
+
+
+def send_file(method, field, filename, data, **params):
+    """Telegram upload (multipart): a .conf document or a QR photo."""
+    b = uuid.uuid4().hex
+    parts = []
+    for k, v in {"chat_id": CHAT, **params}.items():
+        parts.append(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+    parts.append(f'--{b}\r\nContent-Disposition: form-data; name="{field}"; filename="{filename}"\r\n'
+                 f'Content-Type: application/octet-stream\r\n\r\n'.encode() + data + b"\r\n")
+    body = b"".join(parts) + f"--{b}--\r\n".encode()
+    req = urllib.request.Request(f"{API}/{method}", data=body,
+                                 headers={"Content-Type": f"multipart/form-data; boundary={b}"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.load(r)
+
+
+def make_users_ui():
+    """The users screens, if panels are configured (tokens in the environment)."""
+    if not CFG.get("panels"):
+        return None
+    import bot_users
+    import xui_users
+    panels = {}
+    for p in CFG["panels"]:
+        tok = os.environ.get(f"XUI_TOKEN_{p['key'].upper()}")
+        if tok:
+            panels[p["key"]] = xui_users.Panel(p["key"], p["title"], p["base"], tok, p["endpoint_host"],
+                                                int(p["port_lo"]), int(p["port_hi"]))
+    return bot_users.UsersUI(tg, send_file, CHAT, panels) if panels else None
 
 
 def say(text):
@@ -154,7 +189,8 @@ def sites():
     return "Moscow · users · Lithuania\n" + "\n".join(rows)
 
 
-HELP = ("/check <site>: test it now from Moscow, for Server 1's users, and from Lithuania\n"
+HELP = ("/menu: users and checks (buttons)\n"
+        "/check <site>: test it now from Moscow, for Server 1's users, and from Lithuania\n"
         "/sites: the watched list\n/help: this text")
 
 
@@ -170,8 +206,10 @@ def handle(text):
 
 def main():
     threading.Thread(target=refresh_lists, daemon=True).start()
+    ui = make_users_ui()
     try:
-        tg("setMyCommands", commands=json.dumps([{"command": "check", "description": "test a site now"},
+        tg("setMyCommands", commands=json.dumps([{"command": "menu", "description": "users and checks"},
+                                                 {"command": "check", "description": "test a site now"},
                                                  {"command": "sites", "description": "watched list"}]))
     except Exception:
         pass
@@ -181,13 +219,30 @@ def main():
             upd = tg("getUpdates", offset=offset, timeout=50)
             for u in upd.get("result", []):
                 offset = u["update_id"] + 1
+                cq = u.get("callback_query")
+                if cq:
+                    if str((cq.get("message") or {}).get("chat", {}).get("id")) != CHAT:
+                        continue
+                    try:
+                        tg("answerCallbackQuery", callback_query_id=cq["id"])
+                        if ui:
+                            ui.on_callback(cq.get("data", ""))
+                    except Exception as e:
+                        say(f"Error: {str(e)[:300]}")
+                    continue
                 msg = u.get("message") or {}
                 if str(msg.get("chat", {}).get("id")) != CHAT or "text" not in msg:
                     continue
+                text = msg["text"]
                 try:
-                    say(handle(msg["text"]))
+                    if ui and text.split("@")[0].lower() in ("/menu", "/start"):
+                        ui.menu()
+                    elif ui and ui.pending() and not text.startswith("/"):
+                        ui.on_text(text)
+                    else:
+                        say(handle(text))
                 except Exception as e:
-                    say(f"Error: {str(e)[:200]}")
+                    say(f"Error: {str(e)[:300]}")
         except Exception:
             time.sleep(10)
 

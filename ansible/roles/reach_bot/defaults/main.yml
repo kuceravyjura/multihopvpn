@@ -7,3 +7,18 @@ reach_bot_agents:
   s1: "http://{{ hostvars['s1-msk'].wg_mgmt_ip }}:{{ reach_port | default(9116) }}"
   s2: "http://{{ hostvars['s2-lt'].wg_mgmt_ip }}:{{ reach_port | default(9116) }}"
 reach_bot_prometheus: "http://{{ prometheus_listen }}"
+
+# WireGuard user management (ADR 0010). A panel appears in the bot only when its token is in the
+# vault (vault_xui_token_s1 / _s2: 3x-ui API tokens with scope node-sync). New configs use the
+# server's domain as the endpoint, so an IP change only needs a DNS update.
+reach_bot_user_panels:
+  - key: s1
+    host: s1-msk
+    title: "Server 1 · Moscow"
+    endpoint: "{{ vault_s1_domain | default('') }}"
+    token: "{{ vault_xui_token_s1 | default('') }}"
+  - key: s2
+    host: s2-lt
+    title: "Server 2 · Lithuania"
+    endpoint: "{{ vault_s2_domain | default('') }}"
+    token: "{{ vault_xui_token_s2 | default('') }}"

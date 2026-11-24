@@ -67,3 +67,6 @@ monitoring_reach_targets: [vm-staging]
 
 xui_exporter_enabled: true
 monitoring_xui_targets: [vm-staging]
+
+# Bot-created WireGuard users (ADR 0010).
+firewall_user_udp_range: "24000-24999"

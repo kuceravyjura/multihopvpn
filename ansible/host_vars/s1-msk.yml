@@ -62,3 +62,6 @@ geodata_enabled: true
 
 # Traffic per inbound/client for Grafana (ADR 0009): reads x-ui.db, no panel change.
 xui_exporter_enabled: true
+
+# WireGuard users created by the bot (ADR 0010): one UDP range instead of a port per person.
+firewall_user_udp_range: "20000-29999"
