@@ -63,3 +63,6 @@ reach_socks: "127.0.0.1:10808"
 geodata_enabled: true
 reach_interval: 300
 monitoring_reach_targets: [vm-staging]
+
+xui_exporter_enabled: true
+monitoring_xui_targets: [vm-staging]

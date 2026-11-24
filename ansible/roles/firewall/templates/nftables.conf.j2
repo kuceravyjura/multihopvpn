@@ -8,7 +8,7 @@
 table inet homelab
 delete table inet homelab
 
-{% set monitoring_tcp = ([9115] if blackbox_enabled | default(false) else []) + ([9090] if monitoring_enabled | default(false) else []) + ([reach_port | default(9116)] if reach_enabled | default(false) else []) %}
+{% set monitoring_tcp = ([9115] if blackbox_enabled | default(false) else []) + ([9090] if monitoring_enabled | default(false) else []) + ([reach_port | default(9116)] if reach_enabled | default(false) else []) + ([xui_exporter_port | default(9117)] if xui_exporter_enabled | default(false) else []) %}
 {% set mgmt_tcp = ([ssh_port, node_exporter_port] + monitoring_tcp + firewall_mgmt_tcp) | map('string') | unique | list %}
 {% set pub_udp = (firewall_public_udp + ([wg_mgmt_port] if wg_mgmt_endpoint is defined else [])) | map('string') | unique | list %}
 table inet homelab {

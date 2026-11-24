@@ -26,6 +26,14 @@ Telegram messages show [prod] or [staging]. Resolved ones start with "Resolved:"
 - **The watcher on Server 1:** `journalctl -u homelab-watcher -n 5`.
 - **Grafana at home:** `http://127.0.0.1:3000`, user `admin`. The password is in the vault, with a copy in the git-ignored `backups/phase6/grafana-admin.txt`. Open **Homelab → Homelab overview**.
 
+## Traffic per user (ADR 0009)
+
+- `homelab-xui-exporter` on both servers: `curl http://10.99.0.11:9117/metrics` (Server 1),
+  `.12` (Server 2). Reads x-ui.db read-only; only the server's own inbounds.
+- Grafana, row "Traffic": per user now, 24 h and 7 days, per server, the relay hop (client
+  `rurelay` on Server 2), VLESS clients' last seen.
+- Alert `TrafficExporterDown` if it stops or cannot read the database.
+
 ## Grafana (home PC, WSL)
 
 - Role `grafana` on `vm-ctl` (the WSL Ubuntu):

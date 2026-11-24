@@ -40,6 +40,9 @@
     - role: watcher
       tags: [watcher, monitoring]
       when: watcher_enabled | default(false)
+    - role: xui_exporter        # traffic per inbound/client from the panel database (ADR 0009)
+      tags: [xui_exporter, monitoring]
+      when: xui_exporter_enabled | default(false)
     - role: geodata             # nightly block-list refresh for Xray (ADR 0008)
       tags: [geodata]
       when: geodata_enabled | default(false)

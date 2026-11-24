@@ -163,3 +163,12 @@ groups:
           severity: warning
         annotations:
           summary: "Block-list refresh on {{ $labels.host }} failed or has not run for 2 days (the relay list goes stale)"
+
+      # 3x-ui traffic exporter (role xui_exporter, ADR 0009).
+      - alert: TrafficExporterDown
+        expr: up{job="xui"} == 0 or xui_exporter_up == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Traffic exporter on {{ $labels.host }} is down or cannot read the panel database"

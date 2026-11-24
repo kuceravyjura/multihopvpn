@@ -58,3 +58,6 @@ reach_socks: "127.0.0.1:10808"
 # Nightly refresh of Russia's block list (geosite_RU.dat, runetfreedom) for the relay rule
 # "Relay: Russia's block list" (scripts/xray-relay-blocklist.py). The hand-made list stays first.
 geodata_enabled: true
+
+# Traffic per inbound/client for Grafana (ADR 0009): reads x-ui.db, no panel change.
+xui_exporter_enabled: true

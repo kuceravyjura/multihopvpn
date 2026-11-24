@@ -1,0 +1,4 @@
+---
+# Traffic per inbound and per client from the 3x-ui database (ADR 0009). Read-only, no panel change.
+xui_exporter_port: 9117
+xui_exporter_listen: "{{ wg_mgmt_ip }}"     # management tunnel only

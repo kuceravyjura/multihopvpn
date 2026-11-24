@@ -779,6 +779,331 @@
           "showLegend": false
         }
       }
+    },
+    {
+      "id": 104,
+      "type": "row",
+      "title": "Traffic (from the 3x-ui databases)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Traffic per user now (one WireGuard inbound per person)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 16,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "sum by (host, remark) (rate(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[5m]) + rate(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[5m])) * 8 > 1000",
+          "legendFormat": "{{host}} · {{remark}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "Last 24 hours per server",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 54,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "sum by (host) (increase(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[24h]) + increase(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[24h]))",
+          "instant": true,
+          "legendFormat": "{{host}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decbytes",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Relay hop (Server 1 → Server 2)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 58,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "sum(rate(xui_client_down_bytes_total{host=\"s2-lt\",email=\"rurelay\"}[5m]) + rate(xui_client_up_bytes_total{host=\"s2-lt\",email=\"rurelay\"}[5m])) * 8",
+          "legendFormat": "relay"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "bargauge",
+      "title": "Last 24 hours per user",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 8,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "sort_desc(sum by (host, remark) (increase(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[24h]) + increase(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[24h])) > 1e6)",
+          "instant": true,
+          "legendFormat": "{{host}} · {{remark}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decbytes",
+          "decimals": 1,
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "left",
+        "sizing": "auto"
+      }
+    },
+    {
+      "id": 15,
+      "type": "bargauge",
+      "title": "Last 7 days per user",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 63,
+        "w": 8,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "sort_desc(sum by (host, remark) (increase(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[7d]) + increase(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[7d])) > 1e6)",
+          "instant": true,
+          "legendFormat": "{{host}} · {{remark}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decbytes",
+          "decimals": 1,
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "left",
+        "sizing": "auto"
+      }
+    },
+    {
+      "id": 18,
+      "type": "table",
+      "title": "VLESS clients: last seen",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 63,
+        "w": 8,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "(time() - xui_client_last_online_timestamp_seconds > 0) and xui_client_last_online_timestamp_seconds > 0",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "env": true
+            },
+            "renameByName": {
+              "Value": "seen ago"
+            },
+            "indexByName": {
+              "host": 0,
+              "email": 1,
+              "inbound": 2,
+              "Value": 3
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "seen ago"
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
     }
   ],
   "templating": {

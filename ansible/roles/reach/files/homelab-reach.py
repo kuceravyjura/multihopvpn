@@ -23,6 +23,7 @@ import subprocess
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+import socketserver
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -150,11 +151,19 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+class Server(ThreadingHTTPServer):
+    """No reverse-DNS lookup of our own address at start (http.server does getfqdn(), which
+    waits 30-60 s for a timeout on a private tunnel address)."""
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
+
+
 if __name__ == "__main__":
     threading.Thread(target=refresh_loop, daemon=True).start()
     for attempt in range(60):            # the wg-mgmt address may appear a little after boot
         try:
-            srv = ThreadingHTTPServer((CFG["listen"], CFG["port"]), Handler)
+            srv = Server((CFG["listen"], CFG["port"]), Handler)
             break
         except OSError as e:
             print(f"cannot listen on {CFG['listen']}:{CFG['port']} yet ({e}); retrying", flush=True)

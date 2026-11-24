@@ -10,7 +10,8 @@ prometheus_memory_max: 300M               # hard cap: a monitoring bug must not 
 
 # Hosts whose node_exporter is scraped (inventory names, reached over wg-mgmt).
 monitoring_node_targets: []
-monitoring_reach_targets: []   # hosts running the reach agent (role "reach")
+monitoring_reach_targets: []
+monitoring_xui_targets: []     # hosts running the 3x-ui traffic exporter (role "xui_exporter")   # hosts running the reach agent (role "reach")
 # Probes: {name, prober (inventory host running blackbox), module, target, cert: normal|shortlived}
 monitoring_probes: []
 

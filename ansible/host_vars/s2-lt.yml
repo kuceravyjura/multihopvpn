@@ -76,6 +76,9 @@ monitoring_node_targets: [s1-msk, s2-lt]
 reach_enabled: true
 reach_bot_enabled: true
 monitoring_reach_targets: [s1-msk, s2-lt]
+# Traffic per inbound/client (ADR 0009): exporter here, scrape both.
+xui_exporter_enabled: true
+monitoring_xui_targets: [s1-msk, s2-lt]
 # Server 1's public services checked from Lithuania, Server 2's from Moscow (both directions of
 # the user path). Addresses and the domain come from the vault.
 monitoring_probes:

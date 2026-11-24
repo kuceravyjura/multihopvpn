@@ -30,6 +30,17 @@ scrape_configs:
           host: {{ h }}
 {% endfor %}
 
+{% if monitoring_xui_targets | default([]) %}
+  - job_name: xui
+    scrape_interval: 60s
+    static_configs:
+{% for h in monitoring_xui_targets %}
+      - targets: ['{{ hostvars[h].wg_mgmt_ip }}:{{ hostvars[h].xui_exporter_port | default(9117) }}']
+        labels:
+          host: {{ h }}
+{% endfor %}
+
+{% endif %}
 {% if monitoring_reach_targets | default([]) %}
   - job_name: reach
     scrape_interval: 60s
