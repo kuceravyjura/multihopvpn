@@ -165,20 +165,20 @@ pre .c { color: var(--muted); }
     <span class="tag">Server 2 · Lithuania · 1 vCPU / 1 GB</span>
     <span class="tag">Home PC · Windows 11 Pro · Hyper-V</span>
     <span class="tag">~9 weeks part-time</span>
-    <span class="tag">Updated 2026-11-22</span>
+    <span class="tag">Updated 2026-11-24</span>
   </div>
 </header>
 
 <section>
-  <div class="eyebrow">Where it stands · 2026-11-22</div>
+  <div class="eyebrow">Where it stands · 2026-11-24</div>
   <h2>Progress</h2>
-  <div class="bar" role="img" aria-label="6 of 10 phases done, 3 in progress, 1 not started">
-    <span class="b-done" style="width:60%"></span>
-    <span class="b-part" style="width:30%"></span>
+  <div class="bar" role="img" aria-label="7 of 10 phases done, 2 in progress, 1 not started">
+    <span class="b-done" style="width:70%"></span>
+    <span class="b-part" style="width:20%"></span>
   </div>
   <div class="bar-legend">
-    <span><b>6</b> phases done</span>
-    <span><b>3</b> in progress</span>
+    <span><b>7</b> phases done</span>
+    <span><b>2</b> in progress</span>
     <span><b>1</b> not started</span>
   </div>
 
@@ -193,9 +193,9 @@ pre .c { color: var(--muted); }
         <tr><td>4 DNS for Moscow</td><td><span class="pill p-ok">Done</span></td><td>All Server 1 inbounds use AdGuard via the relay (<code>srv1-moscow</code>), 1.5 s fallback to 1.1.1.1. Canary caught lost NXDOMAIN answers; fixed after a lab test.</td></tr>
         <tr><td>5 Retire wg-easy</td><td><span class="pill p-warn">Started</span></td><td>All wg-easy users moved to 3x-ui without touching devices (same keys and port). Remove wg-easy and Docker after 2026-11-29.</td></tr>
         <tr><td>6 Monitoring</td><td><span class="pill p-ok">Done</span></td><td>Prometheus + Alertmanager on Server 2, probes both ways, Telegram alerts in ~1.5 min, ntfy dead man&#39;s switch from Server 1, Grafana at home. Left: Xray traffic stats.</td></tr>
-        <tr><td>7 Backups / DR</td><td><span class="pill p-warn">Started</span></td><td>Nightly backups monitored; encrypted recovery kit on Google Drive, uploaded automatically and verified by restore; one master key in Bitwarden. Left: the first full monthly drill.</td></tr>
+        <tr><td>7 Backups / DR</td><td><span class="pill p-ok">Done</span></td><td>Nightly backups monitored; encrypted recovery kit on Google Drive, uploaded automatically and verified by restore; one master key in Bitwarden. First monthly drill passed: Server 2 rebuilt on staging from the kit alone in ~15 min.</td></tr>
         <tr><td>8 CI/CD</td><td><span class="pill p-warn">Started</span></td><td>Repo on GitHub; lint workflow (yamllint, ansible-lint, vault check) runs on push. Deploy pipeline not done.</td></tr>
-        <tr><td>9 Extras</td><td><span class="pill p-idle">Not started</span></td><td></td></tr>
+        <tr><td>9 Extras</td><td><span class="pill p-idle">Not started</span></td><td>New features are listed in <a href="#next">What comes next</a>.</td></tr>
       </tbody>
     </table>
   </div>
@@ -213,15 +213,18 @@ pre .c { color: var(--muted); }
         <li><span class="mark ok">✓</span><span>Both servers managed by Ansible; admin tunnel works home → servers and Server 1 → Server 2.</span></li>
         <li><span class="mark ok">✓</span><span>TLS fixed: AdGuard's certificate had been expired since March; panels now reload after renewals.</span></li>
         <li><span class="mark ok">✓</span><span>Firewall on both servers, applied with a 20-minute dead-man switch and disarmed over the tunnel.</span></li>
+        <li><span class="mark ok">✓</span><span>Panel node-sync outage (2026-11-22): both panels restored from backups, node links off, postmortem written.</span></li>
+        <li><span class="mark ok">✓</span><span>Subnet scan found the weak spot: the relay hop borrows a Yandex name on a Lithuanian address. Fix planned.</span></li>
       </ul>
     </div>
     <div class="card">
       <h3>Next up</h3>
       <ul class="checklist">
-        <li><span class="mark next">→</span><span>Stage B: an always-on home peer (WireGuard for Windows or a vm-ctl VM), then SSH over the tunnel only.</span></li>
-        <li><span class="mark next">→</span><span>First commit (pick a git author identity) and push to GitHub.</span></li>
-        <li><span class="mark next">→</span><span>Delete the dead <code>polandrelay</code> outbound in Server 1's panel.</span></li>
-        <li><span class="mark next">→</span><span>2026-11-28: remove the xray-server2 fallback image and volumes.</span></li>
+        <li><span class="mark next">→</span><span>2026-11-28: remove the old xray-core image and volumes on Server 2.</span></li>
+        <li><span class="mark next">→</span><span>2026-11-29: remove wg-easy and Docker on Server 2, then their Ansible settings.</span></li>
+        <li><span class="mark next">→</span><span>2026-12-06: delete the incident-backup databases.</span></li>
+        <li><span class="mark next">→</span><span>Server 2: remove fail2ban; check the leftover acme.sh cron job.</span></li>
+        <li><span class="mark next">→</span><span>Relay camouflage: Server 2's own domain and site instead of ya.ru.</span></li>
       </ul>
     </div>
   </div>
@@ -499,7 +502,7 @@ pre .c { color: var(--muted); }
     </div></li>
 
     <li class="phase"><div class="num">7</div><div class="phase-body">
-      <div class="phase-head"><h3>Backups and disaster recovery</h3><span class="when">week 8</span><span class="pill p-warn">Started</span></div>
+      <div class="phase-head"><h3>Backups and disaster recovery</h3><span class="when">week 8</span><span class="pill p-ok">Done</span></div>
       <ul>
         <li>Nightly restic backup of <code>x-ui.db</code>, the AdGuard config and <code>/etc/wireguard</code> to home and to an offsite bucket, with a retention policy.</li>
         <li>Restore test every month, on staging.</li>
@@ -526,6 +529,61 @@ pre .c { color: var(--muted); }
         <li>Authentik SSO in front of Grafana and Gitea.</li>
         <li>Packer or Terraform to build the Hyper-V VMs from code.</li>
       </ul>
+    </div></li>
+  </ol>
+</section>
+
+<section id="next">
+  <div class="eyebrow">Roadmap · new features</div>
+  <h2>What comes next</h2>
+  <p>In suggested order; each step builds on the one before. Users never have to touch their devices.</p>
+  <ol class="phases">
+    <li class="phase"><div class="num">A</div><div class="phase-body">
+      <div class="phase-head"><h3>Reliable camouflage</h3><span class="pill p-idle">Next</span></div>
+      <ul>
+        <li>Relay hop: Server 2's relay inbound borrows its own domain and nginx site instead of ya.ru. Invisible to users.</li>
+        <li>New users on Server 1: a new inbound on a separate port that borrows the Moscow domain and its own fake site; old users stay untouched.</li>
+        <li>Target health probe: every borrowed or own site checked for TLS 1.3, HTTP/2 and X25519, with an alert if it changes.</li>
+        <li>Domains kept in the vault; later a cheap real domain instead of the two look-alike DuckDNS names.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>Every Reality name matches the address it runs on, and a broken target alerts before users notice.</span></div>
+    </div></li>
+    <li class="phase"><div class="num">B</div><div class="phase-body">
+      <div class="phase-head"><h3>Reachability checker and Telegram bot</h3><span class="pill p-idle">Planned</span></div>
+      <ul>
+        <li><code>/check site.com</code>: tested from Server 1 directly, from Server 1 through the relay, and from Server 2.</li>
+        <li>A watched list of domains on a schedule: a Grafana table, and an alert when something becomes blocked or unblocked.</li>
+        <li>Suggests what to add to the relay list, or remove from it. The bot lives on Server 2, since Telegram is blocked from Server 1.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>You learn a service got blocked in Russia from the bot, not from a user.</span></div>
+    </div></li>
+    <li class="phase"><div class="num">C</div><div class="phase-body">
+      <div class="phase-head"><h3>Xray traffic stats</h3><span class="pill p-idle">Planned</span></div>
+      <ul><li>Traffic per user and per inbound in Prometheus and Grafana (the phase 6 leftover).</li></ul>
+    </div></li>
+    <li class="phase"><div class="num">D</div><div class="phase-body">
+      <div class="phase-head"><h3>3x-ui API layer and <code>homelab-users</code></h3><span class="pill p-idle">Planned</span></div>
+      <ul>
+        <li>Create a user's inbound with a remark, sniffing and the relay routing; delete it when they leave. From the PC, later from the bot.</li>
+        <li>Camouflage picker: own domain and fake site, else a vetted subnet neighbor (RealiTLScanner, run from home), else a popular Russian site (Moscow only).</li>
+      </ul>
+    </div></li>
+    <li class="phase"><div class="num">E</div><div class="phase-body">
+      <div class="phase-head"><h3>Zero-effort setup from scratch</h3><span class="pill p-idle">Planned</span></div>
+      <ul>
+        <li>One command: two SSH addresses and an optional domain. It generates the vault and management keys and installs everything.</li>
+        <li>Builds the panels from code: relay pair, routing, DNS, AdGuard, certificates and camouflage. Prints the panel links and the first user's QR code.</li>
+        <li>A button app later.</li>
+      </ul>
+      <div class="outcome"><b>Done when</b><span>CI turns two empty VMs into a working two-hop VPN with no manual steps.</span></div>
+    </div></li>
+    <li class="phase"><div class="num">F</div><div class="phase-body">
+      <div class="phase-head"><h3>CI/CD deploys</h3><span class="pill p-warn">Phase 8</span></div>
+      <ul><li>A runner inside the management network; a pull request shows <code>--check --diff</code>; a merge applies staging → Server 2 → Server 1. The zero-setup test is its strongest check.</li></ul>
+    </div></li>
+    <li class="phase"><div class="num">G</div><div class="phase-body">
+      <div class="phase-head"><h3>Extras</h3><span class="pill p-idle">Phase 9</span></div>
+      <ul><li>A page where users see their own traffic; Loki for central logs; Authentik single sign-on; Packer or Terraform for the Hyper-V VMs.</li></ul>
     </div></li>
   </ol>
 </section>
@@ -566,13 +624,17 @@ pre .c { color: var(--muted); }
 
 <section>
   <div class="eyebrow">Still needed</div>
-  <h2>Open questions</h2>
+  <h2>Open decisions</h2>
   <ul class="questions">
-    <li>OS and version on each server (<code>cat /etc/os-release</code>).</li>
-    <li>RAM and CPU of your PC. The plan assumes 6–8 GB can go to VMs.</li>
-    <li>Server 1's Xray config with secrets replaced by placeholders, to write the exact DNS changes.</li>
-    <li>How Moscow WG traffic reaches Xray today: wg-easy plus a redirect, or a WireGuard inbound inside 3x-ui.</li>
-    <li>Whether each provider offers snapshots and a web console.</li>
+    <li>Hide AdGuard's web UI on the public DoH port :3452 (DNS keeps working).</li>
+    <li>Panel node links: keep them off, or allow one direction.</li>
+    <li>Clean up the duplicate inbounds left in both panels by the node-sync incident.</li>
+    <li>An optional personal Google API key for rclone (fewer Drive rate limits).</li>
+  </ul>
+  <h3>Parked on purpose</h3>
+  <ul class="questions">
+    <li>Per-user DNS names in AdGuard: it would remove Moscow's DNS fallback. Reliability first (ADR 0004).</li>
+    <li>zapret: stays out of the box and isn't backed up.</li>
   </ul>
 </section>
 
