@@ -1,6 +1,6 @@
 # Runbook 14: Server 2 tidy-up (2026-11-24)
 
-Four small fixes, each proven on staging first, applied to Server 2 the same evening.
+Four small fixes (plus §5, on both servers), each proven on staging first, applied to Server 2 the same evening.
 
 **Result on Server 2 (23:07–23:15 MSK):** database matched the live config before the restart; all
 11 inbounds back; `wg0` gone, 62 leftover rules removed, no global IPv6; Telegram connects over
@@ -71,3 +71,21 @@ per-client IP limit (no client has one). ~30 MB of RAM on a 1 GB server.
 
 Root's crontab still ran `/root/.acme.sh/acme.sh --cron` daily although acme.sh was removed on
 2026-11-22 (certbot does the certificates). Line removed by hand (`crontab -e`), nothing else.
+
+## 5. Node links and their inbound copies removed (both servers, 2026-11-25)
+
+The panels were linked as nodes of each other until the 2026-11-22 incident; the links were only
+switched off. Each database still held the link and copies of inbounds (rows with `node_id` set:
+24 on Server 1, 39 on Server 2, some duplicated or of inbounds that no longer exist), with their
+client links, clients and node traffic rows. Xray never used them; they mattered only if a link
+were switched on again, when the panel would sync from that garbage.
+
+```bash
+sudo python3 scripts/xui-drop-node-links.py check /etc/x-ui/x-ui.db   # counts + guard, no change
+# apply: x-ui stopped; backup x-ui.db.bak-nodes-*; one transaction; guard = every client named in a
+# local inbound still exists. Afterwards compare Xray's regenerated config with the one before.
+```
+
+Result: staging, then Server 2 (00:38) and Server 1 (00:39): config after the restart identical
+(12 and 17 inbounds, same clients), all ports bound; the bot still lists 13 and 9 users; Server 1's
+user path works; probes green. Undo: stop x-ui, copy the `.bak-nodes-*` file back, start.

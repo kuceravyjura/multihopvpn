@@ -66,8 +66,8 @@ switched off.
 | Both node links disabled (`nodes.enable = 0`) | done |
 | Before any x-ui restart or panel-database write, compare the database's local inbounds with the live `config.json` ports | rule adopted |
 | Imports on a panel with node links target the local server only; check the inbound count on that port afterwards | runbook (phase 5) |
-| Owner decision: keep the links off, or one-way only | open |
-| Clean the leftover duplicates on Server 1's panel (now unused) and compare it with the restored state | open |
+| Owner decision: keep the links off, or one-way only | done 2026-11-25: links deleted on both servers (the bot and Grafana cover both) |
+| Clean the leftover duplicates on Server 1's panel (now unused) and compare it with the restored state | done 2026-11-25, both panels: `scripts/xui-drop-node-links.py`, runbook 14 §5 |
 | Broken databases kept for analysis: `/root/x-ui.db.incident-2026-11-22-s1`, `-s2`, `/root/x-ui.db.broken-after-restart-2026-11-22` | delete after 2026-12-06 |
 
 ## Note on panel access
