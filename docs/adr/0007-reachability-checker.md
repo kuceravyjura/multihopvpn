@@ -39,8 +39,8 @@ questions; both are shown.
 ## Consequences
 
 - First run found LinkedIn and X blocked from Moscow and missing from the relay list: Server 1's
-  users could not open them. That led to the next step: drive the relay rule from `ru-blocked`
-  as well as the hand-made list.
+  users could not open them. That led to the relay rule driven by `ru-blocked` on top of the
+  hand-made list ([ADR 0008](0008-relay-by-block-list.md)), after which both opened for users.
 - Memory: agent ~12-22 MB, bot ~20 MB (caps 60 MB). Server 1 has 512 MB.
 - A single datacenter vantage point in Moscow: home and mobile networks can block more. The block
   lists cover that part.

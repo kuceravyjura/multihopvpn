@@ -539,7 +539,7 @@ pre .c { color: var(--muted); }
   <p>In suggested order; each step builds on the one before. Users never have to touch their devices.</p>
   <ol class="phases">
     <li class="phase"><div class="num">A</div><div class="phase-body">
-      <div class="phase-head"><h3>Reliable camouflage</h3><span class="pill p-idle">Next</span></div>
+      <div class="phase-head"><h3>Reliable camouflage</h3><span class="pill p-warn">Relay done</span></div>
       <ul>
         <li>Relay hop: Server 2's relay inbound borrows its own domain and nginx site instead of ya.ru. Invisible to users.</li>
         <li>New users on Server 1: a new inbound on a separate port that borrows the Moscow domain and its own fake site; old users stay untouched.</li>
@@ -549,8 +549,9 @@ pre .c { color: var(--muted); }
       <div class="outcome"><b>Done when</b><span>Every Reality name matches the address it runs on, and a broken target alerts before users notice.</span></div>
     </div></li>
     <li class="phase"><div class="num">B</div><div class="phase-body">
-      <div class="phase-head"><h3>Reachability checker and Telegram bot</h3><span class="pill p-idle">Planned</span></div>
+      <div class="phase-head"><h3>Reachability checker and Telegram bot</h3><span class="pill p-ok">Done</span></div>
       <ul>
+        <li><b>Live 2026-11-24</b> (ADR 0007). First run found LinkedIn and X blocked and off the relay list; fixed the same day by relaying everything on Russia's block list (<code>ru-blocked</code>, refreshed nightly, hand-made list kept first; ADR 0008).</li>
         <li><code>/check site.com</code>: tested from Server 1 directly, from Server 1 through the relay, and from Server 2.</li>
         <li>A watched list of domains on a schedule: a Grafana table, and an alert when something becomes blocked or unblocked.</li>
         <li>Suggests what to add to the relay list, or remove from it. The bot lives on Server 2, since Telegram is blocked from Server 1.</li>

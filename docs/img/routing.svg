@@ -86,7 +86,7 @@
 <rect class="box" x="330" y="330" width="290" height="140" rx="14"/>
 <text class="t" x="350" y="356">Server 1 · Moscow</text>
 <text class="s" x="350" y="374">entry node, Xray split routing</text>
-<circle class="fof" cx="356" cy="397" r="4"/><text class="r" x="368" y="401">blocked list (36 rules) → relay</text>
+<circle class="fof" cx="356" cy="397" r="4"/><text class="r" x="368" y="401">block lists → relay (nightly)</text>
 <rect class="dnf" x="352" y="415" width="8" height="8" rx="1.5"/><text class="r" x="368" y="423">DNS :53 → AdGuard via relay</text>
 <circle class="ruf" cx="356" cy="441" r="4"/><text class="r" x="368" y="445">everything else → direct</text>
 

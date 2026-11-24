@@ -15,10 +15,15 @@ and metrics are never exposed to the internet.
 
 <p align="center"><img src="docs/img/routing.svg" alt="Users connect to Server 1 in Moscow. Russian traffic leaves directly; blocked services go over a relay to Server 2 in Lithuania. DNS goes through the relay to AdGuard Home on Server 2, with a 1.1.1.1 fallback if Server 2 is down." width="100%"></p>
 
-- **Users** only ever talk to one address. Server 1's split routing decides per connection: a list
-  of blocked services (Telegram, YouTube, Discord, Meta and others) goes over the relay, everything
-  else stays local and fast.
-- **The relay hop** is VLESS over xhttp with Reality, so it looks like ordinary HTTPS.
+- **Users** only ever talk to one address. Server 1's split routing decides per connection: a
+  hand-made list of blocked services, plus Russia's public block list (refreshed nightly,
+  [ADR 0008](docs/adr/0008-relay-by-block-list.md)), goes over the relay; everything else stays
+  local and fast.
+- **Checked, not assumed:** agents on both servers test sites from Moscow, through the users' own
+  routing, and from Lithuania. A Telegram bot answers `/check site.com`, and an alert fires when
+  users can't open a site that Lithuania can ([ADR 0007](docs/adr/0007-reachability-checker.md)).
+- **The relay hop** is VLESS over xhttp with Reality, and pretends to be Server 2's own small
+  website, so name, address and certificate all match ([ADR 0006](docs/adr/0006-reality-camouflage.md)).
 - **DNS** from Server 1 users is caught on port 53 and sent through the relay to AdGuard Home's
   DNS-over-HTTPS. AdGuard blocks ads and trackers, then asks Quad9 / Control D over encrypted DNS.
 - **Reliability over cleverness:** if Server 2 is down for maintenance, Server 1 answers DNS from
@@ -48,7 +53,7 @@ and metrics are never exposed to the internet.
 | Path | Contents |
 |---|---|
 | `ansible/` | Inventory, variables (secrets in an encrypted vault), `site.yml`, `access.yml` |
-| `ansible/roles/` | **Base:** `common`, `hardening`, `wg_mgmt`, `firewall` · **Services:** `xui`, `adguard`, `dns_identity`, `decoy_site` · **Backups:** `backup`, `recovery_kit` · **Monitoring:** `node_exporter`, `blackbox_exporter`, `monitoring`, `watcher`, `grafana`, `reach`, `reach_bot` |
+| `ansible/roles/` | **Base:** `common`, `hardening`, `wg_mgmt`, `firewall` · **Services:** `xui`, `adguard`, `dns_identity`, `decoy_site` · **Backups:** `backup`, `recovery_kit` · **Monitoring:** `node_exporter`, `blackbox_exporter`, `monitoring`, `watcher`, `grafana`, `reach`, `reach_bot` · **Relay list:** `geodata` |
 | `scripts/` | Backup pull (`Backup-Vps.ps1`), recovery-kit task, home launcher (`Open-Homelab.ps1`), one-off migration helpers |
 | `homelab-vms/` | Hyper-V VM creation (`New-LabVm.ps1`) |
 | `docs/adr/` | Architecture decisions and the reasons behind them |
