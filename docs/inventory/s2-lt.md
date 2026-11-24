@@ -21,7 +21,7 @@ Snapshot: 2026-11-21, from the phase-0 backup.
 | `AdGuardHome` | systemd service; plain DNS refuses outside queries (verified 2026-11-21: timeout from outside) |
 | `nginx` | 80 / 443: generated decoy website, so the server looks like an ordinary web host to scanners |
 | `tor` | SOCKS on 127.0.0.1:9050 only |
-| `fail2ban` | running (SSH jail) |
+| `fail2ban` | running (SSH jail) · removed 2026-11-24 (runbook 14) |
 | `docker`, `containerd` | 5 containers, see below |
 | `ModemManager`, `multipathd`, `udisks2`, `upower` | desktop/storage helpers a VPS doesn't need |
 

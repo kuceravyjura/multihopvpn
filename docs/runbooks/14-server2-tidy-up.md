@@ -1,6 +1,13 @@
 # Runbook 14: Server 2 tidy-up (2026-11-24)
 
-Four small fixes, each proven on staging first.
+Four small fixes, each proven on staging first, applied to Server 2 the same evening.
+
+**Result on Server 2 (23:07–23:15 MSK):** database matched the live config before the restart; all
+11 inbounds back; `wg0` gone, 62 leftover rules removed, no global IPv6; Telegram connects over
+IPv4 in 0.08 s; WARP through the live settings: `warp=on`, Cloudflare Vilnius. DoH (plain and
+`/srv1-moscow`) 200; `:3452/` = decoy site, `/login.html` 404; UI on the tunnel 200; fail2ban gone;
+crontab empty. All probes green, no alerts. (The steady `no known endpoint for peer` errors in the
+x-ui log are one user's device, not WARP; they were there before: 1821 since 20:00.)
 
 ## 1. WARP inside Xray (no `wg0` interface)
 
