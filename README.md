@@ -48,7 +48,7 @@ and metrics are never exposed to the internet.
 | Path | Contents |
 |---|---|
 | `ansible/` | Inventory, variables (secrets in an encrypted vault), `site.yml`, `access.yml` |
-| `ansible/roles/` | **Base:** `common`, `hardening`, `wg_mgmt`, `firewall` · **Services:** `xui`, `adguard`, `dns_identity` · **Backups:** `backup`, `recovery_kit` · **Monitoring:** `node_exporter`, `blackbox_exporter`, `monitoring`, `watcher`, `grafana` |
+| `ansible/roles/` | **Base:** `common`, `hardening`, `wg_mgmt`, `firewall` · **Services:** `xui`, `adguard`, `dns_identity`, `decoy_site` · **Backups:** `backup`, `recovery_kit` · **Monitoring:** `node_exporter`, `blackbox_exporter`, `monitoring`, `watcher`, `grafana` |
 | `scripts/` | Backup pull (`Backup-Vps.ps1`), recovery-kit task, home launcher (`Open-Homelab.ps1`), one-off migration helpers |
 | `homelab-vms/` | Hyper-V VM creation (`New-LabVm.ps1`) |
 | `docs/adr/` | Architecture decisions and the reasons behind them |

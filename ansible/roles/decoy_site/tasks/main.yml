@@ -1,0 +1,93 @@
+---
+- name: A domain is required
+  ansible.builtin.assert:
+    that: decoy_domain | length > 0
+    fail_msg: "decoy_domain is empty: set it in host_vars (from the vault)"
+    quiet: true
+
+- name: Pick this server's theme
+  ansible.builtin.set_fact:
+    decoy_theme: "{{ decoy_themes[(decoy_seed | hash('md5'))[:8] | int(base=16) % (decoy_themes | length)] }}"
+
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Self-signed certificate where certbot cannot issue one (staging)
+  when: decoy_selfsigned_if_missing
+  block:
+    - name: Certificate folder
+      ansible.builtin.file:
+        path: "{{ decoy_cert | dirname }}"
+        state: directory
+        mode: "0700"
+
+    - name: Generate the pair if missing
+      ansible.builtin.command:
+        argv: [openssl, req, -x509, -newkey, "ec", -pkeyopt, "ec_paramgen_curve:prime256v1", -nodes,
+               -days, "365", -subj, "/CN={{ decoy_domain }}", -addext, "subjectAltName=DNS:{{ decoy_domain }}",
+               -keyout, "{{ decoy_key }}", -out, "{{ decoy_cert }}"]
+        creates: "{{ decoy_cert }}"
+      notify: Reload nginx
+
+- name: Certificate must exist
+  ansible.builtin.stat:
+    path: "{{ decoy_cert }}"
+  register: _decoy_cert
+
+- name: Stop if there is no certificate
+  ansible.builtin.assert:
+    that: _decoy_cert.stat.exists
+    fail_msg: "No certificate at {{ decoy_cert }}. Issue one first (certbot --nginx -d <domain>)."
+    quiet: true
+
+- name: Site folder
+  ansible.builtin.file:
+    path: "{{ decoy_root }}"
+    state: directory
+    mode: "0755"
+
+- name: Site pages
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ decoy_root }}/{{ item }}"
+    mode: "0644"
+  loop: [index.html, 404.html, robots.txt]
+
+- name: Keep the previous default site once, for rollback
+  ansible.builtin.command:
+    argv: [cp, -L, /etc/nginx/sites-enabled/default, /etc/nginx/sites-available/default.pre-decoy]
+    creates: /etc/nginx/sites-available/default.pre-decoy
+    removes: /etc/nginx/sites-enabled/default
+
+- name: Site configuration
+  ansible.builtin.template:
+    src: decoy.conf.j2
+    dest: /etc/nginx/sites-available/decoy
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable the site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/decoy
+    dest: /etc/nginx/sites-enabled/decoy
+    state: link
+    force: "{{ ansible_check_mode }}"   # a dry run never wrote the target file
+  notify: Reload nginx
+
+- name: Disable the stock default site (it would claim 80/443 too)
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Check the nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Nginx running and enabled
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: started
+    enabled: true

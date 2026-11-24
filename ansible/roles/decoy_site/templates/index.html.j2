@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ decoy_theme.name }}</title>
+<meta name="description" content="{{ decoy_theme.tagline }}">
+<style>
+  :root { --ink: #1f2a2e; --muted: #5d6b70; --line: #dfe5e7; --accent: #2f6f62; --bg: #fbfaf7; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 17px/1.6 Georgia, "Times New Roman", serif; color: var(--ink); background: var(--bg); }
+  header, main, footer { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+  header { display: flex; justify-content: space-between; align-items: center; padding-top: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .logo { font-weight: bold; font-size: 20px; letter-spacing: .02em; }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 18px; font: 15px system-ui, sans-serif; }
+  .hero { padding: 64px 0 40px; }
+  h1 { font-size: 38px; line-height: 1.2; margin: 0 0 14px; font-weight: normal; }
+  .lead { color: var(--muted); font-size: 19px; max-width: 36em; }
+  h2 { font-size: 22px; font-weight: normal; margin: 40px 0 12px; }
+  ul.services { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  ul.services li { border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; background: #fff; font: 15px system-ui, sans-serif; }
+  .contact { margin: 40px 0 56px; padding: 22px; border-left: 3px solid var(--accent); background: #fff; font: 15px system-ui, sans-serif; }
+  footer { border-top: 1px solid var(--line); padding-top: 18px; padding-bottom: 40px; color: var(--muted); font: 13px system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">{{ decoy_theme.name }}</div>
+  <nav><a href="#services">Services</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+</header>
+<main>
+  <section class="hero">
+    <h1>{{ decoy_theme.tagline }}</h1>
+    <p class="lead">{{ decoy_theme.about }}</p>
+  </section>
+  <section id="services">
+    <h2>Services</h2>
+    <ul class="services">
+{% for s in decoy_theme.services %}
+      <li>{{ s }}</li>
+{% endfor %}
+    </ul>
+  </section>
+  <section id="about">
+    <h2>About us</h2>
+    <p>We are a small team and we answer every enquiry ourselves. Visits by appointment only.</p>
+  </section>
+  <section id="contact" class="contact">
+    Write to <b>office@{{ decoy_domain }}</b> and we will reply within one working day.
+  </section>
+</main>
+<footer>&copy; {{ now().year }} {{ decoy_theme.name }}. All rights reserved.</footer>
+</body>
+</html>

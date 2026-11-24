@@ -57,6 +57,11 @@ firewall_extra_rules:
 
 adguard_enabled: true
 
+# Fake site on 443 (replaces the stock "Welcome to nginx" page); also the Reality target of the
+# relay inbound, so the relay's name, address and certificate all belong to this server (ADR 0006).
+decoy_enabled: true
+decoy_domain: "{{ vault_s2_domain }}"
+
 # ADR 0004 (deferred): per-user DNS identity would remove Server 1's DNS fallback.
 # Reliability first: everyone stays srv1-moscow. The role removes the route while false.
 dns_identity_enabled: false
@@ -89,3 +94,9 @@ monitoring_probes:
     module: https_reachable
     target: "https://{{ vault_s2_domain }}/"
     cert: normal
+  # The relay's camouflage, probed from Moscow with the relay's name, as a censor would see it:
+  # must be the fake site over TLS 1.3 + HTTP/2. A plain TCP check misses a broken target (ADR 0006).
+  - name: s2-relay-camouflage
+    prober: s1-msk
+    module: reality_target
+    target: "https://{{ vault_s2_domain }}:1111/"

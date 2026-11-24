@@ -24,6 +24,9 @@
     - role: adguard
       tags: [adguard]
       when: adguard_enabled | default(false)
+    - role: decoy_site          # fake site on 443, Reality self-steal target (ADR 0006)
+      tags: [decoy_site]
+      when: decoy_enabled | default(false)
     - role: backup
       tags: [backup]
     - role: dns_identity        # installs or removes itself (dns_identity_enabled)

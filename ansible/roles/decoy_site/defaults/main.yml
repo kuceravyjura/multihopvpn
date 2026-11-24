@@ -1,0 +1,44 @@
+---
+# A plausible small-business site on 443, served by nginx with the server's own certificate.
+# Two jobs: an ordinary-looking web server for anyone who visits the address, and the
+# Reality "self-steal" target (Xray borrows this site's TLS handshake; ADR 0006).
+
+decoy_domain: ""                     # set per host from the vault
+decoy_cert: "/etc/letsencrypt/live/{{ decoy_domain }}/fullchain.pem"   # certbot, nginx plugin
+decoy_key: "/etc/letsencrypt/live/{{ decoy_domain }}/privkey.pem"
+decoy_selfsigned_if_missing: false   # staging only: certbot cannot issue for a LAN VM
+decoy_root: /var/www/decoy
+
+# The theme is picked from the domain, so each server gets its own, stable site.
+decoy_seed: "{{ decoy_domain }}"
+decoy_themes:
+  - name: Lakeview Carpentry
+    tagline: Custom furniture and joinery, built to last.
+    about: >-
+      A small workshop making kitchens, wardrobes and staircases to measure since 2011.
+      Every piece is drawn, cut and finished by the same two carpenters.
+    services: [Kitchen cabinets, Built-in wardrobes, Staircases, Furniture restoration]
+  - name: Amberline Translations
+    tagline: Technical and legal translation between English, German and the Baltic languages.
+    about: >-
+      Certified translators for contracts, manuals and product documentation.
+      Fixed quotes within one working day, and confidentiality agreements on request.
+    services: [Legal documents, Technical manuals, Website localisation, Proofreading]
+  - name: Northgate Bookkeeping
+    tagline: Accounting and payroll for small companies.
+    about: >-
+      We keep the books for about forty small businesses: monthly accounts, VAT returns,
+      payroll and year-end reports, with one named accountant for each client.
+    services: [Monthly bookkeeping, VAT returns, Payroll, Annual reports]
+  - name: Birch & Stone Studio
+    tagline: Architecture and interiors for homes and small offices.
+    about: >-
+      A three-person studio working on renovations, attic conversions and office fit-outs,
+      from the first sketch to supervising the builders.
+    services: [Renovation design, Interior planning, Permits and drawings, Site supervision]
+  - name: Harbour Bicycle Workshop
+    tagline: Repairs, servicing and rentals for city and touring bikes.
+    about: >-
+      Same-week servicing for most bikes, wheel building, and a small fleet of touring bikes
+      for rent by the day or the week.
+    services: [Full service, Wheel building, E-bike diagnostics, Touring bike rental]

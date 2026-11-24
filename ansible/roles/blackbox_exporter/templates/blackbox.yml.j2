@@ -26,6 +26,34 @@ modules:
         Accept: application/dns-message
       tls_config:
         insecure_skip_verify: true
+  # A Reality camouflage target, seen the way a censor's probe sees it (ADR 0006): it must answer
+  # like a real site over TLS 1.3 and HTTP/2, or Reality on that port breaks or looks fake.
+  reality_target:
+    prober: http
+    timeout: 8s
+    http:
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200]
+      valid_http_versions: ["HTTP/2.0"]
+      enable_http2: true
+      fail_if_not_ssl: true
+      fail_if_body_not_matches_regexp: ["</html>"]
+      tls_config:
+        min_version: TLS13
+  # Same, for staging's self-signed stand-in certificate.
+  reality_target_insecure:
+    prober: http
+    timeout: 8s
+    http:
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200]
+      valid_http_versions: ["HTTP/2.0"]
+      enable_http2: true
+      fail_if_not_ssl: true
+      fail_if_body_not_matches_regexp: ["</html>"]
+      tls_config:
+        min_version: TLS13
+        insecure_skip_verify: true
   # An HTTPS service answers at all (panel root returns 404 by design); used for certificate expiry.
   https_reachable:
     prober: http

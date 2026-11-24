@@ -294,6 +294,27 @@ copies were not used.
 - The restored DB still carries the old node-copy duplicates (open decision: clean them on
   Server 1 and Server 2).
 
+## Relay camouflage switched to Server 2's own site (2026-11-24, ADR 0006)
+
+Rehearsed on staging first (both names, then new name only, then the old name refused).
+
+| Step | Check | Result |
+|---|---|---|
+| 1. `decoy_site` on Server 2 | public 443 | HTTP/2, TLS 1.3 + X25519, valid certificate, fake business page; port 80 redirects |
+| | `certbot renew --dry-run` | all simulated renewals succeeded |
+| 2. Relay inbound, both names | database vs running config before and after | 11 = 11 inbounds; all public TCP and WireGuard UDP ports listening |
+| | relay client with old and new name, public address | both HTTP 200 |
+| | probe of 1111 with the domain name | the fake site, HTTP/2, valid certificate |
+| 3. Server 1 outbound, new name | database vs running config | 15 = 15; all ports listening |
+| | Telegram, YouTube, Discord via a Server 1 inbound | HTTP 200 (relay); ya.ru direct |
+| | `rurelay` on Server 2 | online after the switch |
+| | `doubleclick.net` via a Server 1 inbound (port 53) | `0.0.0.0` in 93 ms: AdGuard via the relay |
+| | monitoring | 8/8 probes green, no alerts besides Watchdog |
+| Probe rolled out | `s2-relay-camouflage` from Moscow | green: HTTP 200, HTTP/2, TLS 1.3, 0.18 s; 9/9 probes green |
+
+New probe `reality_target` (staging): green normally; **red with nginx stopped while the TCP probe
+stayed green**, green again after nginx started.
+
 ## Verified from outside on staging (not from Ansible's own report)
 
 | Check | Result |
