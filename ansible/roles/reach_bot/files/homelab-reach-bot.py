@@ -25,7 +25,8 @@ STATE = os.environ.get("STATE_DIRECTORY", "/var/lib/homelab-reach-bot")
 LISTS = {"ru-blocked": "https://github.com/runetfreedom/russia-blocked-geosite/releases/latest/download/ru-blocked.txt",
          "ru-blocked-all": "https://github.com/runetfreedom/russia-blocked-geosite/releases/latest/download/ru-blocked-all.txt"}
 _small = {"set": set(), "when": 0}       # ru-blocked kept in memory (~73k names); the big one is scanned on disk
-STAGE = {"ok": "opens", "dns": "name does not resolve", "tcp": "no connection",
+STAGE = {"ok": "opens", "refused": "the site refuses this address (HTTP 403/451, e.g. a country block)",
+         "dns": "name does not resolve", "tcp": "no connection",
          "tls": "connects, but TLS stalls (typical block by name)", "http": "no answer after TLS (throttled?)",
          "error": "check failed"}
 
@@ -110,7 +111,9 @@ def check(site):
     lt = s2.get("paths", {}).get("direct")
     ok = lambda r: bool(r) and r["result"] == "ok"
     if ok(users):
-        if not ok(msk):
+        if msk and msk["result"] == "refused":
+            verdict = "The site refuses Russian addresses; Server 1's users get it from Lithuania through the relay."
+        elif not ok(msk):
             verdict = "Blocked in Russia; Server 1's users get it through the relay."
         elif lst in ("ru-blocked", "ru-blocked-all"):
             verdict = ("Listed as blocked, yet it opens directly from the Moscow datacenter: home and mobile "
@@ -119,6 +122,9 @@ def check(site):
             verdict = "Open in Russia; Server 1's users are fine."
     elif users is None:
         verdict = "No user-path check on Server 1 yet."
+    elif ok(lt) and msk and msk["result"] == "refused" and users["result"] == "refused":
+        verdict = ("The site itself refuses Russian addresses and users reach it from Moscow: "
+                   "<b>add it to the relay list</b> so it goes out from Lithuania.")
     elif ok(lt) and not ok(msk):
         verdict = "Blocked in Russia and <b>not on the relay list</b>: add it to Server 1's relay rules."
         if lst is None:

@@ -25,8 +25,9 @@ Grafana, "Websites" row: the current table and each site's history for Server 1'
 
 | Stage | Meaning |
 |---|---|
-| ok | an HTTP answer arrived (any status) |
-| dns | the name did not resolve |
+| ok | an HTTP answer arrived |
+| refused | the site answered 403/451: it turns this address away (OpenAI refuses Russian addresses). Not usable. |
+| dns | the name did not resolve (every failure is retried once after 2 s first) |
 | tcp | no connection: address blocked, or the site is down |
 | tls | connected, but the TLS handshake stalled: the typical block by name (SNI) |
 | http | TLS done, no answer in time: throttled or stalled |

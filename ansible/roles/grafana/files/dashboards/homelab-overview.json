@@ -943,98 +943,6 @@
       }
     },
     {
-      "id": 14,
-      "type": "bargauge",
-      "title": "Last 24 hours per user",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prom-s2"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 63,
-        "w": 8,
-        "h": 12
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prom-s2"
-          },
-          "expr": "sort_desc(sum by (host, remark) (increase(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[24h]) + increase(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[24h])) > 1e6)",
-          "instant": true,
-          "legendFormat": "{{host}} · {{remark}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "decbytes",
-          "decimals": 1,
-          "color": {
-            "mode": "continuous-BlPu"
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "orientation": "horizontal",
-        "displayMode": "basic",
-        "showUnfilled": true,
-        "valueMode": "text",
-        "namePlacement": "left",
-        "sizing": "auto"
-      }
-    },
-    {
-      "id": 15,
-      "type": "bargauge",
-      "title": "Last 7 days per user",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prom-s2"
-      },
-      "gridPos": {
-        "x": 8,
-        "y": 63,
-        "w": 8,
-        "h": 12
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prom-s2"
-          },
-          "expr": "sort_desc(sum by (host, remark) (increase(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[7d]) + increase(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[7d])) > 1e6)",
-          "instant": true,
-          "legendFormat": "{{host}} · {{remark}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "decbytes",
-          "decimals": 1,
-          "color": {
-            "mode": "continuous-BlPu"
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "orientation": "horizontal",
-        "displayMode": "basic",
-        "showUnfilled": true,
-        "valueMode": "text",
-        "namePlacement": "left",
-        "sizing": "auto"
-      }
-    },
-    {
       "id": 18,
       "type": "table",
       "title": "VLESS clients: last seen",
@@ -1103,6 +1011,171 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 19,
+      "type": "table",
+      "title": "Traffic per user (download + upload)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 16,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "sum by (host, remark) (increase(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[24h]) + increase(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[24h]))",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "sum by (host, remark) (increase(xui_inbound_down_bytes_total{remark!~\"reach probe.*\"}[7d]) + increase(xui_inbound_up_bytes_total{remark!~\"reach probe.*\"}[7d]))",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "host": 0,
+              "remark": 1,
+              "Value #A": 2,
+              "Value #B": 3
+            },
+            "renameByName": {
+              "host": "server",
+              "remark": "user (inbound remark)",
+              "Value #A": "last 24 hours",
+              "Value #B": "last 7 days"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "fieldName": "last 7 days",
+                "config": {
+                  "id": "lower",
+                  "options": {
+                    "value": 1000000
+                  }
+                }
+              }
+            ],
+            "type": "exclude",
+            "match": "any"
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "last 7 days",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "last .*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-BlPu"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "server"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "last 24 hours",
+            "last 7 days"
+          ]
+        }
       }
     }
   ],

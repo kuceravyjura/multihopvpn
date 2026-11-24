@@ -2,7 +2,8 @@
 """homelab-reach: can this server open a website, and how far does it get?
 
 Each check runs curl against https://<site>/ and reports the stage it reached:
-  ok       an HTTP answer arrived (any status: the site is reachable)
+  ok       an HTTP answer arrived (the site is reachable)
+  refused  the site answered 403/451: it turns this address away (e.g. OpenAI refuses Russia)
   dns      the name did not resolve
   tcp      no TCP connection (IP blocked, or the site is down)
   tls      TCP connected but the TLS handshake never finished (typical SNI blocking)
@@ -65,7 +66,9 @@ def check(site, proxy=None, timeout=10):
         return {"result": "error", "detail": str(e)[:80], "seconds": round(time.time() - t0, 2)}
     code, exit_ = int(w.get("http_code") or 0), int(w.get("exitcode", r.returncode))
     conn, tls = float(w.get("time_connect") or 0), float(w.get("time_appconnect") or 0)
-    if code > 0:
+    if code in (403, 451):
+        res = "refused"
+    elif code > 0:
         res = "ok"
     elif exit_ in (5, 6):
         res = "dns"
@@ -84,9 +87,21 @@ def check(site, proxy=None, timeout=10):
     return out
 
 
+def check_once_more(site, proxy):
+    """One retry after a short pause, so a single slow moment doesn't count as blocked.
+    A refusal (403/451) is an answer, not a glitch: no retry."""
+    r = check(site, proxy)
+    if r["result"] not in ("ok", "refused"):
+        time.sleep(2)
+        r2 = check(site, proxy)
+        r2["retried"] = True
+        return r2
+    return r
+
+
 def check_all(site):
     with ThreadPoolExecutor(len(PATHS)) as ex:
-        futs = {p: ex.submit(check, site, proxy) for p, proxy in PATHS.items()}
+        futs = {p: ex.submit(check_once_more, site, proxy) for p, proxy in PATHS.items()}
         return {p: f.result() for p, f in futs.items()}
 
 
@@ -112,7 +127,7 @@ def metrics():
     for site, paths in res.items():
         for p, r in paths.items():
             lines.append(f'homelab_reach_seconds{{site="{site}",path="{p}"}} {r.get("seconds", 0)}')
-    lines += ["# HELP homelab_reach_result Stage the last check reached (ok, dns, tcp, tls, http).",
+    lines += ["# HELP homelab_reach_result Stage the last check reached (ok, refused, dns, tcp, tls, http).",
               "# TYPE homelab_reach_result gauge"]
     for site, paths in res.items():
         for p, r in paths.items():
