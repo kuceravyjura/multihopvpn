@@ -14,6 +14,7 @@ Answers only the owner's chat. Config /etc/homelab-reach-bot.json, secrets in
 /etc/homelab-reach-bot.env (BOT_TOKEN, CHAT_ID). Long polling: no open port."""
 import json
 import os
+import socket
 import sys
 import threading
 import uuid
@@ -23,6 +24,11 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 CFG = json.load(open("/etc/homelab-reach-bot.json"))
+
+# IPv4 first. Server 2 has an IPv6 address only from Xray's WARP outbound and no working IPv6
+# route, so trying IPv6 first made every Telegram call wait for its timeout (minutes per reply).
+_gai = socket.getaddrinfo
+socket.getaddrinfo = lambda *a, **k: sorted(_gai(*a, **k), key=lambda r: r[0] != socket.AF_INET)
 sys.path.insert(0, "/usr/local/lib/homelab-bot")
 TOKEN, CHAT = os.environ["BOT_TOKEN"], str(os.environ["CHAT_ID"])
 API = f"https://api.telegram.org/bot{TOKEN}"
