@@ -40,6 +40,9 @@
     - role: watcher
       tags: [watcher, monitoring]
       when: watcher_enabled | default(false)
+    - role: geodata             # nightly block-list refresh for Xray (ADR 0008)
+      tags: [geodata]
+      when: geodata_enabled | default(false)
     - role: reach               # website reachability agent (ADR 0007)
       tags: [reach]
       when: reach_enabled | default(false)

@@ -60,5 +60,6 @@ watcher_enabled: false
 # probe inbound (scripts/xui-local-probe-inbound.py). No bot here: one bot token, one poller.
 reach_enabled: true
 reach_socks: "127.0.0.1:10808"
+geodata_enabled: true
 reach_interval: 300
 monitoring_reach_targets: [vm-staging]

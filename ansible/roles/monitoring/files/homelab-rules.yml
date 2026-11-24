@@ -152,3 +152,14 @@ groups:
           severity: warning
         annotations:
           summary: "Reachability agent on {{ $labels.host }} is not answering or not checking"
+
+      # Nightly block-list refresh on Server 1 (role geodata, ADR 0008).
+      - alert: BlockListStale
+        expr: |
+          homelab_geodata_last_check_ok == 0
+          or time() - homelab_geodata_last_run_timestamp_seconds > 2 * 86400
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Block-list refresh on {{ $labels.host }} failed or has not run for 2 days (the relay list goes stale)"

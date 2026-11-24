@@ -1,0 +1,57 @@
+---
+# Nightly refresh of Russia's block list for Xray (geosite_RU.dat from runetfreedom). ADR 0008.
+- name: Update script
+  ansible.builtin.copy:
+    src: homelab-geodata.sh
+    dest: /usr/local/sbin/homelab-geodata
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Service and timer
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: "{{ item.content }}"
+  loop:
+    - name: homelab-geodata.service
+      content: |
+        # Managed by Ansible (role: geodata)
+        [Unit]
+        Description=Refresh Russia's block list for Xray (geosite_RU.dat)
+        After=network-online.target x-ui.service
+        Wants=network-online.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/sbin/homelab-geodata
+        TimeoutStartSec=15min
+    - name: homelab-geodata.timer
+      content: |
+        # Managed by Ansible (role: geodata)
+        [Unit]
+        Description=Nightly block-list refresh ({{ geodata_time }}, after the 03:40 backup)
+
+        [Timer]
+        OnCalendar=*-*-* {{ geodata_time }}
+        RandomizedDelaySec=10min
+        Persistent=true
+
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+  register: _geodata_units
+
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: _geodata_units.changed
+
+- name: Timer enabled
+  ansible.builtin.systemd_service:
+    name: homelab-geodata.timer
+    state: started
+    enabled: true
