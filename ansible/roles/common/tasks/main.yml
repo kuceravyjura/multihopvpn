@@ -93,6 +93,13 @@
   loop: "{{ common_disable_services }}"
   when: (item ~ '.service') in ansible_facts.services
 
+- name: Remove packages a server no longer needs
+  ansible.builtin.apt:
+    name: "{{ common_remove_packages }}"
+    state: absent
+    purge: true
+  when: common_remove_packages | length > 0
+
 - name: Check for the zram kernel module
   ansible.builtin.command: modinfo zram
   register: _common_zram_mod

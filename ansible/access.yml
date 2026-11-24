@@ -41,7 +41,6 @@
       (tunnel: https://10.99.0.12:{{ p2.webPort }}{{ p2.webBasePath }})
     s1_sub: "https://{{ vault_s1_public_ip }}:{{ p1.subPort }}{{ p1.subPath }}"
     s2_sub: "https://{{ vault_s2_domain }}:{{ p2.subPort }}{{ p2.subPath }}"
-    agh_public: "https://{{ vault_s2_domain }}:3452 (UI shares the DoH port)"
   tasks:
     - name: Render
       ansible.builtin.template:

@@ -88,3 +88,40 @@
     enabled: true
     state: started
   ignore_errors: "{{ ansible_check_mode }}"
+
+# AdGuard rewrites its config from memory on some changes, so it is stopped while the file is
+# edited. Keys under tls: (each appears once in the file).
+- name: DoH behind nginx
+  when: adguard_doh_via_nginx
+  block:
+    - name: Does the TLS section need changing?
+      ansible.builtin.command:
+        argv: [grep, -cE, '^\s+(port_https: [1-9]|allow_unencrypted_doh: false|force_https: true)', "{{ adguard_dir }}/AdGuardHome.yaml"]
+      register: _agh_tls_todo
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Change it
+      when: _agh_tls_todo.stdout | int > 0
+      block:
+        - name: Stop AdGuard Home
+          ansible.builtin.systemd_service:
+            name: AdGuardHome
+            state: stopped
+
+        - name: HTTPS port off, plain DoH allowed (from nginx), no redirect to HTTPS
+          ansible.builtin.replace:
+            path: "{{ adguard_dir }}/AdGuardHome.yaml"
+            regexp: "{{ item.re }}"
+            replace: "{{ item.to }}"
+          loop:
+            - {re: '^(\s+)port_https: \d+$', to: '\g<1>port_https: 0'}
+            - {re: '^(\s+)allow_unencrypted_doh: false$', to: '\g<1>allow_unencrypted_doh: true'}
+            - {re: '^(\s+)force_https: true$', to: '\g<1>force_https: false'}
+
+      always:
+        - name: Start AdGuard Home
+          ansible.builtin.systemd_service:
+            name: AdGuardHome
+            state: started

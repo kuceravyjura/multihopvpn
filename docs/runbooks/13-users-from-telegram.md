@@ -18,13 +18,14 @@ In the bot: `/menu`.
 Hand-over: PC users import the `.conf` in WireSock or WireGuard; phones scan the QR in the
 WireGuard app (+ → Scan from QR code).
 
-Nothing restarts: 3x-ui applies these changes live.
+Nothing restarts: 3x-ui applies these changes live. Tested on staging (2026-11-24): adding and
+removing a device rewrites only that person's inbound; Xray's process stayed the same throughout.
 
 ## Setup (done 2026-11-24)
 
 1. Tokens, one per server, scope `node-sync`, straight into the vault:
-   `x-ui setting -getApiToken -tokenName homelab-bot -tokenScope node-sync` (on the server, as
-   root) → `vault_xui_token_s1`, `vault_xui_token_s2`. Plus `vault_s1_domain`.
+   `/usr/local/x-ui/x-ui setting -getApiToken -tokenName homelab-bot -tokenScope node-sync` (on the
+   server, as root; the full path: on some installs `x-ui` alone is the menu script) → `vault_xui_token_s1`, `vault_xui_token_s2`. Plus `vault_s1_domain`.
 2. `firewall_user_udp_range: "20000-29999"` in both servers' host_vars;
    `ansible-playbook site.yml -l s1-msk --tags firewall`, same for `s2-lt` (disarm after).
 3. `ansible-playbook site.yml -l s2-lt --tags reach_bot`: installs `qrencode`, the modules, and

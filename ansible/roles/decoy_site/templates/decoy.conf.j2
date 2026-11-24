@@ -38,3 +38,38 @@ server {
         try_files $uri $uri/ =404;
     }
 }
+{% if decoy_doh_port | int > 0 %}
+
+# DNS-over-HTTPS for AdGuard (adguard_doh_via_nginx). AdGuard sees the client's address from
+# X-Real-IP (it trusts 127.0.0.0/8), so its allow-list and per-client names keep working.
+server {
+    listen {{ decoy_doh_port }} ssl http2;
+    listen [::]:{{ decoy_doh_port }} ssl http2;
+    server_name {{ decoy_domain }};
+    server_tokens off;
+
+    ssl_certificate {{ decoy_cert }};
+    ssl_certificate_key {{ decoy_key }};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:decoy:1m;
+    ssl_session_timeout 1h;
+
+    root {{ decoy_root }};
+    index index.html;
+    error_page 404 /404.html;
+
+    location /dns-query {
+        proxy_pass {{ decoy_doh_upstream }};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_read_timeout 15s;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+{% endif %}

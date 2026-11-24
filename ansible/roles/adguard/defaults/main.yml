@@ -15,3 +15,9 @@ adguard_restore_config: ""
 
 # Staging only: self-signed pair at the TLS paths in the restored config, if they are missing.
 adguard_selfsigned_if_missing: false
+
+# DoH behind nginx: AdGuard stops serving HTTPS itself (its HTTPS port also served the admin UI to
+# the whole internet). nginx takes the DoH port with the same certificate, passes /dns-query to
+# AdGuard's plain HTTP listener and shows the decoy site for everything else; the UI stays on the
+# management tunnel (:3000). DoT and DoQ are untouched. Pair with decoy_doh_port (decoy_site).
+adguard_doh_via_nginx: false

@@ -42,3 +42,8 @@ decoy_themes:
       Same-week servicing for most bikes, wheel building, and a small fleet of touring bikes
       for rent by the day or the week.
     services: [Full service, Wheel building, E-bike diagnostics, Touring bike rental]
+
+# DoH in front of AdGuard (adguard_doh_via_nginx): this port serves /dns-query from AdGuard and the
+# decoy site for anything else, so the address no longer shows an AdGuard login page. 0 = off.
+decoy_doh_port: 0
+decoy_doh_upstream: "http://127.0.0.1:3000"

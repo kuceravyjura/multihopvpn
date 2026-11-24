@@ -15,6 +15,9 @@ common_disable_services:
   - udisks2
   - upower
 
+# fail2ban only watched SSH (public SSH is off) and 3x-ui's per-client IP limit (unused).
+common_remove_packages: [fail2ban]
+
 # Firewall on since 2026-11-22 (stage A); SSH over wg-mgmt only since stage B, same day. Ports re-checked against live listeners.
 firewall_enabled: true
 firewall_ssh_public: false         # stage B: SSH over wg-mgmt only (home peers: win-home, vm-ctl)
@@ -23,10 +26,10 @@ firewall_public_tcp:
   - 443     # nginx decoy site: makes the server look like an ordinary web host
   - 853     # AdGuard DNS-over-TLS
   - 1111    # vless + Reality (xhttp), hop from Server 1
-  - 3452    # AdGuard DNS-over-HTTPS
+  - 3452    # DNS-over-HTTPS: nginx -> AdGuard (the admin UI is no longer public)
   - 8443    # vless + Reality (tcp)
 firewall_public_udp:
-  - 3452    # DoH over HTTP/3
+  - 3452    # AdGuard DNS-over-QUIC
   - 51820   # wg-easy (until retired)
   - 12580   # Xray WireGuard inbounds from here down
   - 26683
@@ -37,7 +40,7 @@ firewall_public_udp:
   - 56539
   - 57158
 firewall_mgmt_tcp:
-  - 3000    # AdGuard web UI
+  - 3000    # AdGuard web UI (the only way in since 2026-11-24)
   - 6903    # 3x-ui panel
   - 2096    # 3x-ui subscriptions: not used by clients
 
@@ -56,11 +59,15 @@ firewall_extra_rules:
   - 'ip saddr {{ vault_s1_public_ip }} tcp dport 6903 accept'
 
 adguard_enabled: true
+# AdGuard's HTTPS port also served its admin UI to the internet. nginx now answers on 3452 with
+# the same certificate: /dns-query goes to AdGuard, anything else gets the decoy site.
+adguard_doh_via_nginx: true
 
 # Fake site on 443 (replaces the stock "Welcome to nginx" page); also the Reality target of the
 # relay inbound, so the relay's name, address and certificate all belong to this server (ADR 0006).
 decoy_enabled: true
 decoy_domain: "{{ vault_s2_domain }}"
+decoy_doh_port: 3452
 
 # ADR 0004 (deferred): per-user DNS identity would remove Server 1's DNS fallback.
 # Reliability first: everyone stays srv1-moscow. The role removes the route while false.

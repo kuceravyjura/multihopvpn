@@ -95,7 +95,7 @@ installed but manages nothing. See [postmortem](../postmortems/2026-11-22-tls-ce
 | 80, 443 | tcp | nginx | public | decoy website |
 | 53 | tcp+udp | AdGuard | public socket | plain DNS (refuses outside queries) |
 | 853 | tcp | AdGuard | public | DNS-over-TLS (Android "Private DNS") |
-| 3452 | tcp+udp | AdGuard | public | DNS-over-HTTPS (+ HTTP/3) |
+| 3452 | tcp+udp | AdGuard | public | DNS-over-HTTPS (+ HTTP/3) · since 2026-11-24: tcp = nginx → AdGuard `/dns-query` only, udp = DNS-over-QUIC (runbook 14) |
 | 3000 | tcp | AdGuard | public | AdGuard web UI → **mgmt only** |
 | 6903 | tcp | x-ui | public | 3x-ui panel → **mgmt only** |
 | 2096 | tcp | x-ui | public | 3x-ui subscription service, not used by clients → **mgmt only** |

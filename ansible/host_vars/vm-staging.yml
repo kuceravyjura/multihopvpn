@@ -28,6 +28,10 @@ adguard_selfsigned_if_missing: true
 decoy_enabled: true
 decoy_domain: "{{ vault_s2_domain }}"
 decoy_selfsigned_if_missing: true
+# DoH behind nginx, admin UI on the tunnel only (as on Server 2).
+adguard_doh_via_nginx: true
+decoy_doh_port: 3452
+common_remove_packages: [fail2ban]
 
 # ADR 0004: 10.53.0.N is local here, so AdGuard sees each user's DNS address as the client.
 dns_identity_enabled: true
