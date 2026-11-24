@@ -19,6 +19,9 @@ and metrics are never exposed to the internet.
   hand-made list of blocked services, plus Russia's public block list (refreshed nightly,
   [ADR 0008](docs/adr/0008-relay-by-block-list.md)), goes over the relay; everything else stays
   local and fast.
+- **New users in seconds:** a Telegram button creates a person's WireGuard inbound and sends the
+  `.conf` and a QR code; add devices, resend, disable or delete the same way. Applied live, no
+  restart ([ADR 0010](docs/adr/0010-users-from-telegram.md)).
 - **Checked, not assumed:** agents on both servers test sites from Moscow, through the users' own
   routing, and from Lithuania. A Telegram bot answers `/check site.com`, and an alert fires when
   users can't open a site that Lithuania can ([ADR 0007](docs/adr/0007-reachability-checker.md)).
