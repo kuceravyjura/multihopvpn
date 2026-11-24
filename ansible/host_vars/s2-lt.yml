@@ -71,6 +71,11 @@ blackbox_enabled: true
 monitoring_enabled: true
 monitoring_env: prod
 monitoring_node_targets: [s1-msk, s2-lt]
+# Reachability (ADR 0007): agent here (direct from Lithuania), scrape both agents, and the
+# Telegram bot (/check, /sites) on this host, where Telegram is reachable.
+reach_enabled: true
+reach_bot_enabled: true
+monitoring_reach_targets: [s1-msk, s2-lt]
 # Server 1's public services checked from Lithuania, Server 2's from Moscow (both directions of
 # the user path). Addresses and the domain come from the vault.
 monitoring_probes:

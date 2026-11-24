@@ -55,3 +55,10 @@ monitoring_probes:
 # -e alertmanager_telegram_bot_token={{ vault_telegram_bot_token }} (watcher: see runbook 07).
 alertmanager_telegram_bot_token: ""
 watcher_enabled: false
+
+# Reachability agent (ADR 0007): direct, and through staging's own Xray routing via the local
+# probe inbound (scripts/xui-local-probe-inbound.py). No bot here: one bot token, one poller.
+reach_enabled: true
+reach_socks: "127.0.0.1:10808"
+reach_interval: 300
+monitoring_reach_targets: [vm-staging]

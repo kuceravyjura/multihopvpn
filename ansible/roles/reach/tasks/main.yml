@@ -1,0 +1,66 @@
+---
+- name: Curl for the checks
+  ansible.builtin.apt:
+    name: curl
+    state: present
+
+- name: Agent script
+  ansible.builtin.copy:
+    src: homelab-reach.py
+    dest: /usr/local/sbin/homelab-reach
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart homelab-reach
+
+- name: Agent configuration
+  ansible.builtin.copy:
+    dest: /etc/homelab-reach.json
+    content: "{{ _cfg | to_nice_json }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    _cfg:
+      server: "{{ inventory_hostname }}"
+      listen: "{{ reach_listen }}"
+      port: "{{ reach_port | int }}"
+      interval: "{{ reach_interval | int }}"
+      socks: "{{ reach_socks }}"
+      sites: "{{ reach_sites }}"
+  notify: Restart homelab-reach
+
+- name: Service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/homelab-reach.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (role: reach)
+      [Unit]
+      Description=Website reachability checks (homelab-reach)
+      Wants=wg-quick@{{ wg_mgmt_interface }}.service
+      After=network-online.target wg-quick@{{ wg_mgmt_interface }}.service
+
+      [Service]
+      ExecStart=/usr/bin/python3 /usr/local/sbin/homelab-reach
+      DynamicUser=yes
+      Restart=always
+      RestartSec=10
+      MemoryMax=60M
+      NoNewPrivileges=yes
+      ProtectSystem=strict
+      ProtectHome=yes
+      PrivateTmp=yes
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Restart homelab-reach
+
+- name: Agent running
+  ansible.builtin.systemd_service:
+    name: homelab-reach
+    state: started
+    enabled: true
+    daemon_reload: true

@@ -30,6 +30,17 @@ scrape_configs:
           host: {{ h }}
 {% endfor %}
 
+{% if monitoring_reach_targets | default([]) %}
+  - job_name: reach
+    scrape_interval: 60s
+    static_configs:
+{% for h in monitoring_reach_targets %}
+      - targets: ['{{ hostvars[h].wg_mgmt_ip }}:{{ hostvars[h].reach_port | default(9116) }}']
+        labels:
+          host: {{ h }}
+{% endfor %}
+
+{% endif %}
 {% for p in monitoring_probes %}
   - job_name: probe_{{ p.name }}
     metrics_path: /probe

@@ -1,0 +1,25 @@
+---
+# homelab-reach: website reachability from this server (ADR 0007, runbook 11).
+reach_port: 9116
+reach_listen: "{{ wg_mgmt_ip }}"          # management tunnel only
+reach_interval: 600                       # seconds between runs over the watched list
+# Local proxy inbound of this server's Xray for the "user" path (what VPN users get).
+# Empty: direct path only. Server 1 sets it after the inbound is added (scripts/xui-local-probe-inbound.py).
+reach_socks: ""
+# The watched list. ya.ru is a control (must work directly from Moscow).
+reach_sites:
+  - youtube.com
+  - discord.com
+  - telegram.org
+  - web.whatsapp.com
+  - instagram.com
+  - facebook.com
+  - x.com
+  - linkedin.com
+  - chatgpt.com
+  - signal.org
+  - spotify.com
+  - github.com
+  - wikipedia.org
+  - google.com
+  - ya.ru

@@ -40,6 +40,12 @@
     - role: watcher
       tags: [watcher, monitoring]
       when: watcher_enabled | default(false)
+    - role: reach               # website reachability agent (ADR 0007)
+      tags: [reach]
+      when: reach_enabled | default(false)
+    - role: reach_bot           # Telegram /check and /sites, monitoring host only
+      tags: [reach, reach_bot]
+      when: reach_bot_enabled | default(false)
 
 - name: Home control node
   hosts: home

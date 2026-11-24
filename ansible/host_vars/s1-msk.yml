@@ -49,3 +49,8 @@ blackbox_enabled: true
 watcher_enabled: true
 watcher_targets:
   - {name: server2-prometheus, url: "http://10.99.0.12:9090"}
+
+# Reachability agent (ADR 0007): direct from Moscow, and the "user" path through this panel's own
+# routing via the local probe inbound 127.0.0.1:10808 (scripts/xui-local-probe-inbound.py).
+reach_enabled: true
+reach_socks: "127.0.0.1:10808"

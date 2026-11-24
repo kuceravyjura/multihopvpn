@@ -576,6 +576,209 @@
         "overrides": []
       },
       "options": {}
+    },
+    {
+      "id": 103,
+      "type": "row",
+      "title": "Websites (reach agents, every 10 min)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Can it be opened? (s1-msk/direct = from Moscow, s1-msk/user = Server 1's users, s2-lt/direct = from Lithuania)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 12,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "label_join(homelab_reach_up, \"where\", \"/\", \"host\", \"path\")",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "rowField": "site",
+            "columnField": "where",
+            "valueField": "Value"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "site\\where": "site"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "blocked",
+                  "color": "red",
+                  "index": 1
+                },
+                "1": {
+                  "text": "open",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-background",
+              "mode": "basic"
+            }
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "site"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 12,
+      "type": "state-timeline",
+      "title": "Server 1's users: history per site",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-s2"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 39,
+        "w": 12,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-s2"
+          },
+          "expr": "homelab_reach_up{host=\"s1-msk\", path=\"user\"}",
+          "legendFormat": "{{site}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "blocked",
+                  "color": "red",
+                  "index": 1
+                },
+                "1": {
+                  "text": "open",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "rowHeight": 0.8,
+        "mergeValues": true,
+        "alignValue": "left",
+        "legend": {
+          "showLegend": false
+        }
+      }
     }
   ],
   "templating": {

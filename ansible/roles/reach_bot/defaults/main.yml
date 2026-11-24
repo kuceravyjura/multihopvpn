@@ -1,0 +1,9 @@
+---
+# Telegram bot for the reachability agents. Runs on the monitoring host (Server 2), where Telegram
+# is reachable. Same bot as the alerts; it only answers the owner's chat.
+reach_bot_token: "{{ vault_telegram_bot_token }}"
+reach_bot_chat_id: "{{ vault_telegram_chat_id }}"
+reach_bot_agents:
+  s1: "http://{{ hostvars['s1-msk'].wg_mgmt_ip }}:{{ reach_port | default(9116) }}"
+  s2: "http://{{ hostvars['s2-lt'].wg_mgmt_ip }}:{{ reach_port | default(9116) }}"
+reach_bot_prometheus: "http://{{ prometheus_listen }}"

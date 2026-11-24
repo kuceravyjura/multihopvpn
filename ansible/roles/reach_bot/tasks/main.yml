@@ -1,0 +1,75 @@
+---
+- name: Bot token and chat are set
+  ansible.builtin.assert:
+    that:
+      - reach_bot_token | length > 20
+      - (reach_bot_chat_id | string) | length > 3
+    fail_msg: vault_telegram_bot_token / vault_telegram_chat_id missing from the vault.
+    quiet: true
+
+- name: Bot script
+  ansible.builtin.copy:
+    src: homelab-reach-bot.py
+    dest: /usr/local/sbin/homelab-reach-bot
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart homelab-reach-bot
+
+- name: Bot configuration
+  ansible.builtin.copy:
+    dest: /etc/homelab-reach-bot.json
+    content: "{{ {'agents': reach_bot_agents, 'prometheus': reach_bot_prometheus} | to_nice_json }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart homelab-reach-bot
+
+- name: Bot secrets
+  ansible.builtin.copy:
+    dest: /etc/homelab-reach-bot.env
+    content: |
+      BOT_TOKEN={{ reach_bot_token }}
+      CHAT_ID={{ reach_bot_chat_id }}
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart homelab-reach-bot
+
+- name: Service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/homelab-reach-bot.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (role: reach_bot)
+      [Unit]
+      Description=Telegram bot for reachability checks (homelab-reach-bot)
+      After=network-online.target homelab-reach.service
+      Wants=network-online.target
+
+      [Service]
+      EnvironmentFile=/etc/homelab-reach-bot.env
+      ExecStart=/usr/bin/python3 /usr/local/sbin/homelab-reach-bot
+      DynamicUser=yes
+      StateDirectory=homelab-reach-bot
+      Restart=always
+      RestartSec=15
+      MemoryMax=60M
+      NoNewPrivileges=yes
+      ProtectSystem=strict
+      ProtectHome=yes
+      PrivateTmp=yes
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Restart homelab-reach-bot
+
+- name: Bot running
+  ansible.builtin.systemd_service:
+    name: homelab-reach-bot
+    state: started
+    enabled: true
+    daemon_reload: true
