@@ -28,6 +28,8 @@
       interval: "{{ reach_interval | int }}"
       socks: "{{ reach_socks }}"
       sites: "{{ reach_sites }}"
+      direct_interval: "{{ reach_direct_interval | int }}"
+      user_agent: "{{ reach_user_agent }}"
   notify: Restart homelab-reach
 
 - name: Service
@@ -46,6 +48,7 @@
       [Service]
       ExecStart=/usr/bin/python3 /usr/local/sbin/homelab-reach
       DynamicUser=yes
+      StateDirectory=homelab-reach
       Restart=always
       RestartSec=10
       MemoryMax=60M

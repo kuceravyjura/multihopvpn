@@ -13,12 +13,19 @@ Paths:
   user     through a local proxy inbound of this server's Xray, so the panel's routing rules
            apply exactly as for a VPN user (Server 1 only: relay list, DNS, direct)
 
+Schedule: the watched list every `interval` s on every path, except the direct path when
+`direct_interval` is set (Server 1): then the direct path runs rarely (about every
+`direct_interval` s, +-20 %, random order, random 20-120 s pauses), so the server doesn't look
+like a censorship probe. Its last results are kept in the state directory across restarts.
+
 HTTP on the management tunnel only:
   GET /check?site=example.com   check now, all paths, JSON
   GET /metrics                  watched list (refreshed every `interval` s), Prometheus format
 Config: /etc/homelab-reach.json (role "reach"; ADR 0007, runbook 11)."""
 import ipaddress
 import json
+import os
+import random
 import re
 import subprocess
 import threading
@@ -33,7 +40,10 @@ PATHS = {"direct": None}
 if CFG.get("socks"):
     PATHS["user"] = CFG["socks"]
 HOST_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
-_state = {"results": {}, "last_run": 0}
+_state = {"results": {}, "last_run": 0, "direct_last": 0}
+STATE = os.environ.get("STATE_DIRECTORY", "/var/lib/homelab-reach")
+DIRECT_EVERY = int(CFG.get("direct_interval") or 0)        # 0: direct path on the normal schedule
+UA = CFG.get("user_agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
 _lock = threading.Lock()
 _busy = threading.Semaphore(4)          # at most 4 on-demand checks at once (512 MB server)
 
@@ -54,7 +64,7 @@ def clean_site(raw):
 def check(site, proxy=None, timeout=10):
     url = f"https://[{site}]/" if ":" in site else f"https://{site}/"
     cmd = ["curl", "-s", "-o", "/dev/null", "--connect-timeout", "5", "--max-time", str(timeout),
-           "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36",
+           "-A", UA,
            "-w", "%{json}", url]
     if proxy:
         cmd[1:1] = ["--socks5-hostname", proxy]
@@ -105,19 +115,64 @@ def check_all(site):
         return {p: f.result() for p, f in futs.items()}
 
 
+def _store(site, path, res):
+    with _lock:
+        _state["results"].setdefault(site, {})[path] = res
+
+
 def refresh_loop():
+    """The frequent schedule: every path, except a rare direct path (see direct_loop)."""
+    fast = {p: proxy for p, proxy in PATHS.items() if not (p == "direct" and DIRECT_EVERY)}
     while True:
         start = time.time()
+
+        def run(site):
+            for p, proxy in fast.items():
+                _store(site, p, check_once_more(site, proxy))
         with ThreadPoolExecutor(3) as ex:
-            res = dict(zip(CFG["sites"], ex.map(check_all, CFG["sites"])))
+            list(ex.map(run, CFG["sites"]))
         with _lock:
-            _state["results"], _state["last_run"] = res, time.time()
+            _state["last_run"] = time.time()
         time.sleep(max(30, CFG.get("interval", 600) - (time.time() - start)))
+
+
+def direct_loop():
+    """The rare direct schedule (Server 1). Saved, so a restart neither loses nor repeats it."""
+    path = os.path.join(STATE, "direct.json")
+    try:
+        saved = json.load(open(path))
+    except Exception:
+        # First round: some random time within one interval (at most a day), not right away.
+        saved = {"results": {}, "last": 0,
+                 "next": time.time() + random.uniform(min(3600, DIRECT_EVERY / 2), min(86400, DIRECT_EVERY))}
+    for site, res in saved["results"].items():
+        _store(site, "direct", res)
+    _state["direct_last"] = saved["last"]
+    while True:
+        time.sleep(max(0, saved["next"] - time.time()))
+        sites = list(CFG["sites"])
+        random.shuffle(sites)
+        for i, site in enumerate(sites):
+            res = check_once_more(site, None)
+            _store(site, "direct", res)
+            saved["results"][site] = res
+            if i < len(sites) - 1:
+                time.sleep(random.uniform(20, 120))
+        saved["last"] = time.time()
+        saved["next"] = saved["last"] + DIRECT_EVERY * random.uniform(0.8, 1.2)
+        _state["direct_last"] = saved["last"]
+        try:
+            with open(path + ".tmp", "w") as f:
+                json.dump(saved, f)
+            os.replace(path + ".tmp", path)
+        except OSError:
+            pass
 
 
 def metrics():
     with _lock:
-        res, last = dict(_state["results"]), _state["last_run"]
+        res = {s: dict(p) for s, p in _state["results"].items()}   # both schedules write
+        last = _state["last_run"]
     lines = ["# HELP homelab_reach_up 1 if the site gave an HTTP answer on this path.",
              "# TYPE homelab_reach_up gauge"]
     for site, paths in res.items():
@@ -133,7 +188,10 @@ def metrics():
         for p, r in paths.items():
             lines.append(f'homelab_reach_result{{site="{site}",path="{p}",result="{r["result"]}"}} 1')
     lines += ["# TYPE homelab_reach_last_run_timestamp_seconds gauge",
-              f"homelab_reach_last_run_timestamp_seconds {last}"]
+              f"homelab_reach_last_run_timestamp_seconds {last}",
+              "# HELP homelab_reach_direct_last_run_timestamp_seconds Last rare direct round (0: not yet).",
+              "# TYPE homelab_reach_direct_last_run_timestamp_seconds gauge",
+              f"homelab_reach_direct_last_run_timestamp_seconds {_state['direct_last']}"]
     return "\n".join(lines) + "\n"
 
 
@@ -176,6 +234,8 @@ class Server(ThreadingHTTPServer):
 
 if __name__ == "__main__":
     threading.Thread(target=refresh_loop, daemon=True).start()
+    if DIRECT_EVERY:
+        threading.Thread(target=direct_loop, daemon=True).start()
     for attempt in range(60):            # the wg-mgmt address may appear a little after boot
         try:
             srv = Server((CFG["listen"], CFG["port"]), Handler)

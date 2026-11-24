@@ -39,6 +39,17 @@ Grafana, "Websites" row: the current table and each site's history for Server 1'
 | ✅ | ❌ | ✅ | Server 1's routing is wrong for it (or the relay is down) |
 | any | ❌ | ❌ | the site is down or blocks these servers |
 
+## How often
+
+| Path | Schedule |
+|---|---|
+| Server 1, through its routing (users) | every 10 min |
+| Server 1, direct from Moscow | about weekly, random time and order (`reach_direct_interval`); `/check` on demand |
+| Server 2, direct | every 10 min |
+
+The Moscow column in Grafana shows the last weekly round. To change the rhythm, set
+`reach_direct_interval` (seconds) in `host_vars/s1-msk.yml`.
+
 ## Change the watched list
 
 `reach_sites` in `ansible/roles/reach/defaults/main.yml` (or per host), then

@@ -54,6 +54,7 @@ watcher_targets:
 # routing via the local probe inbound 127.0.0.1:10808 (scripts/xui-local-probe-inbound.py).
 reach_enabled: true
 reach_socks: "127.0.0.1:10808"
+reach_direct_interval: 604800      # direct checks about once a week, random time and order
 
 # Nightly refresh of Russia's block list (geosite_RU.dat, runetfreedom) for the relay rule
 # "Relay: Russia's block list" (scripts/xray-relay-blocklist.py). The hand-made list stays first.

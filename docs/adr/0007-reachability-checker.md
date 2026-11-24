@@ -36,6 +36,23 @@ questions; both are shown.
   `SiteNowBlockedInRussia` / `SiteNowOpenInRussia` (change against a day ago, information),
   `ReachAgentDown`. Grafana: a table and a history per site.
 
+## Revision 2026-11-24: Server 1's direct checks are rare
+
+The first version opened the watched list directly from Server 1 every 10 minutes: about 1,000
+attempts a day to blocked sites from a datacenter address at fixed intervals, with curl's TLS
+handshake. That is the signature of a censorship probe (like OONI) and visible to the provider
+and to Russia's DPI on the uplink; the VPN has no need to show it.
+
+- Server 1's **direct** path now runs about **once a week** (`reach_direct_interval`, +-20 %),
+  in random order, one site at a time with random 20-120 s pauses; results are kept on disk so
+  restarts neither lose nor repeat a round. `/check` still tests directly on demand.
+- The **user** path (every 10 min) is unchanged: blocked sites go out through the relay, as for
+  any user. Server 2 (no censorship) still checks every 10 min.
+- "Is it blocked in Russia?" between rounds comes from the block lists. `SiteBlockedForUsers`
+  (user path) is unaffected.
+- Also: HTTP 403/451 counts as `refused`, not open (OpenAI refuses Russian addresses), and every
+  failure is retried once after 2 s.
+
 ## Consequences
 
 - First run found LinkedIn and X blocked from Moscow and missing from the relay list: Server 1's

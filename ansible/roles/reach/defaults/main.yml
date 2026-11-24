@@ -3,6 +3,10 @@
 reach_port: 9116
 reach_listen: "{{ wg_mgmt_ip }}"          # management tunnel only
 reach_interval: 600                       # seconds between runs over the watched list
+# Direct path on a rare, random schedule (0: every `reach_interval`). Server 1 sets a week, so
+# its own address doesn't open blocked sites like a censorship probe would (ADR 0007).
+reach_direct_interval: 0
+reach_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
 # Local proxy inbound of this server's Xray for the "user" path (what VPN users get).
 # Empty: direct path only. Server 1 sets it after the inbound is added (scripts/xui-local-probe-inbound.py).
 reach_socks: ""
