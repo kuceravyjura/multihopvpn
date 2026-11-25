@@ -77,7 +77,9 @@ TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 git -C "$REPO" bundle create "$TMP/homelab-repo.bundle" --all 2>/dev/null
 cp "$HOME/.ansible/homelab-vault-pass" "$TMP/ansible-vault-password"
 PATHS=("$TMP" "$HOME/.ssh" "$WINHOME/.ssh" "$REPO/backups")
-restic backup --host homelab-pc --tag kit --exclude '*.part' "${PATHS[@]}"
+# --group-by host,tags: $TMP is a new folder every run, so grouping by paths (the default) never
+# found a parent snapshot and every run re-read all files.
+restic backup --host homelab-pc --tag kit --group-by host,tags --exclude '*.part' "${PATHS[@]}"
 # Pruning and verifying cost many Drive API calls (Google throttles rclone's shared key), so they
 # run once a week (Sunday) or on request: homelab-kit full
 if [ "$(date +%u)" = 7 ] || [ "${FULL:-}" = 1 ]; then

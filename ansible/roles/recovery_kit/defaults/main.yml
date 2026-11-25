@@ -3,7 +3,10 @@
 # user, started by a Windows scheduled task. One secret opens it: the restic password, kept in
 # Bitwarden (and in ~/.config/homelab-kit/ for the automatic runs).
 kit_rclone_remote: gdrive               # created once with `rclone config` (runbook 08)
-kit_drive_folder: homelab-recovery-kit
+# Since 2026-11-25 rclone uses a personal Google client ID (runbook 08). With scope drive.file a
+# client sees only files it created itself, so the kit moved to a new folder then; the old
+# folder (homelab-recovery-kit, made with rclone's shared client) is no longer readable.
+kit_drive_folder: homelab-recovery-kit-2
 kit_keep: "--keep-daily 14 --keep-weekly 8 --keep-monthly 12"
 kit_repo_dir: "{{ playbook_dir | dirname }}"    # this repository, as seen from WSL
 # Where the PC reports a successful upload, so Server 2 alerts if uploads stop (RecoveryKitStale).

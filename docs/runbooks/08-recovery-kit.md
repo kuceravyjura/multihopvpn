@@ -29,11 +29,12 @@ new PC. **What opens it:** one password, kept in Bitwarden.
    Log: `backups\recovery\kit.log`.
 2. **`homelab-kit`** (Ansible role `recovery_kit`):
    - takes a **restic** snapshot, encrypted (AES-256) and deduplicated;
-   - uploads it through **rclone** to Google Drive, folder `homelab-recovery-kit`, using the
-     `drive.file` scope: rclone sees only what it created.
+   - uploads it through **rclone** to Google Drive, folder `homelab-recovery-kit-2`, using the
+     `drive.file` scope: rclone sees only what it created;
+   - restic finds the previous snapshot by host and tag (`--group-by host,tags`), so a run reads
+     only changed files.
 3. **Sundays** (or `homelab-kit full`): it also prunes old snapshots (keeps 14 daily, 8 weekly,
-   12 monthly) and verifies the repository. These steps are weekly because Google throttles
-   rclone's shared API key.
+   12 monthly) and verifies the repository. These steps are weekly to keep Drive API calls low.
 4. **Monitoring:** each successful upload is reported to Server 2. Telegram alerts if there has
    been no upload for 3 days (**RecoveryKitStale**).
 
@@ -76,9 +77,26 @@ On 2026-11-22 a throttled check made an early version try to create the reposito
 attempt failed harmlessly, and the marker prevents it now. A run that fails is simply retried at the
 next trigger; RecoveryKitStale only fires after 3 days without an upload.
 
+### Personal client ID (done 2026-11-25)
 
-rclone uses a public API key shared by all rclone users. A personal Google Cloud OAuth client ID
-(free) removes most `RATE_LIMIT_EXCEEDED` retries. Create it in Google Cloud Console (APIs and
-Services: enable the Drive API; Credentials: OAuth client, type Desktop), then run
-`rclone config update gdrive client_id=… client_secret=… --drive-scope drive.file` and authorize
-again.
+rclone's built-in API key is shared by all rclone users, and it ran out: on 2026-11-25 every
+request got `403 RATE_LIMIT_EXCEEDED` and an hour-long run ended in a 500. Since then rclone uses
+its own free Google Cloud client (project `homelab-kit`).
+
+1. Google Cloud Console: new project, enable the **Google Drive API**.
+2. **Google Auth Platform**: Get started (External). On **Branding** set the home page and
+   privacy-policy links (the GitHub repo is fine for both; add `github.com` as an authorised
+   domain if asked); no logo, since a logo forces verification. Then **Audience → Publish app**:
+   the status must be **In production**. In "Testing" Google expires the login after 7 days and
+   the nightly runs start failing.
+3. **Clients → Create client**, type Desktop app. Keep the ID and secret (Bitwarden).
+4. In WSL, typing the values yourself:
+   `rclone config update gdrive client_id=… client_secret=… --drive-scope drive.file`, then
+   `rclone config reconnect gdrive:` (refresh: y, auto config: y, shared drive: n). Google warns
+   "hasn't verified this app": Advanced → continue.
+
+**A new client cannot see the old folder.** `drive.file` gives a client only the files it created
+itself, so a new client ID means a new folder: change `kit_drive_folder`, deploy, delete
+`~/.config/homelab-kit/repo-initialized`, and run `homelab-kit` (a new repository with the same
+restic password, full upload), then `homelab-kit verify`. Delete the old folder in the Drive web
+page after a few good runs. That happened once: `homelab-recovery-kit` → `homelab-recovery-kit-2`.
